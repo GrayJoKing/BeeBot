@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "master-inn-138923",
+  "private_key_id": "0690fa8fa5e5522f8ec707d5df834a4d7582cfbf",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDh9w7YVTMFrugj\n9ddUgWfq1LYC0Acg0BZB38u2tgjbYp/Ehe76/RYNQM67PKobUyKiMgRjMLqrS50O\nL+Mx/H35XnBmVjXE+i7iLFi4zUpQ2uAhxVDu+IRSNaCDQw4lwJA/O+x6SytogPhD\nkVq5meUK9cobbKVPOZEPoMitQCBrYI0lV3ASG0PxziGXR2UWX6sAGi9FXEj9g2Ai\nWWpQHrHM1Iujp/1pGxIfg+JP8Z7kOWS5ioXIXgtvpeJ0AKXjnq3PkxLRYOzp/SdD\nRMbWZYipWvX4tUM2o1pxej0I3CxNG7Lir6eMOO8aDrXFMHiC6XNhuejLLfTTg9nn\n+nL981evAgMBAAECggEBAMDUq6dzdZoY++OMLRjhYcPlh/l4e0zGJuhKSjb+uyo0\nzLDRtvIbPlFLB+CC0YuF851EX7gh4nrBiSKNPS3wEbTXocXDNhmFgrLiM0hpcEz1\nq6VGFF4KWCkruHGrrIwM+0vrIE/wi/efb72BclHHAc3LmJC0s5GbR651gCtQ+RmH\nbfWm36c8pAJi7QRl4YO0cYONMt9AKWR+9tPfOoNEKC5THuUyO4J6Z4fkRoSIQgo5\nMIM0iwB2uop8BxBKY1a8yAzjNgPxNVlgTjoFK4Wmx39M+rgD6NAdN8rfAWRsvEZl\nQin9LKDPZzaNF+yIOAc9yTszc4HZqbVmbQH4CLlwh9kCgYEA9YyPgOhlFrwhSXrY\nRyNVDwRRRoR5GKmwKUPnMbovl0SMFm8YDTO9gy0J1otOVELOehI2RmPaKIZ6kmRa\nQ/B1XVk//cR0bzMVqVDmpH1F24jWoYZAvf6pSRyJZB3qV/poP0jJHEbbFX/Xp+T0\nhROPDGRNXrm6D2/JNNbpbZ1aSjMCgYEA65Udgdquee5nyanP3FM9fG57XumMXcqs\n7XGU66awU8LmWE1crD6fEMGU9rjdppQ8/1UeaqBIkWCU6SaSS0u15pyH5remhQke\n1aJpm3LTDfh567iLwrdCpIpZzR2Bh2iRwA5oT3QhDrkpUw0daZywQiMrrvzx+Si3\neIWwbiIpOJUCgYEA6C87WrdlLzRBfYvNiqbcPVDl0XpeT3XU/5AXwyu86JqGpIf0\nBDfSkYE69kXPkVmCiGdELxcoKH3Q1TBTMj7jm5tTKRBk0OlLKEk5bnyOW+JuoVmj\nSoTNajazq5mmB/7eKEkY8cYGT7QNJdMXa+Zss1j81/9i8knPxkkZfO73e4UCgYA7\nwtL+auwR0FGRzbsGCDOzyg8Pz60k6dIeVc7STLG0Pd/TDKTyqNwPExxnzhOkOzyS\nBRS3NbvS7S45SuiXozgcrR6of3QFkX+57/5cSa+SfrLnAiSqG3UTamlHaDHAmN1I\nXB9H8IymQIBkKhKJBQ+NZ4CgXlg/vX11XGyaM55DVQKBgCo7KiZoWejfhi+hoT2/\n/wVgkqZTbjwU6ZdFCwdwn3a+5cm5A3X4G9IznTJpuLXXGrXhK2fHsHFbDEmAeSa1\nCZwGhbovWOSaInd1BLhMuLWvvYzWKEdiiFrR2hMEvtDbKkFkzwpFhDTs1bd/xF/b\ni/1j6iMw4Qs/mhu5Td0vKqKA\n-----END PRIVATE KEY-----\n",
+  "client_email": "master-inn-138923@appspot.gserviceaccount.com",
+  "client_id": "106080372638737160244",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/master-inn-138923%40appspot.gserviceaccount.com"
+}
