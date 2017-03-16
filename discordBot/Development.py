@@ -4,6 +4,10 @@ from discord.ext import commands
 #TTT, TTTQ
 from random import random, choice
 
+#image
+from googleapiclient.discovery import build
+import secrets
+
 #Suggestions
 import time
 
@@ -1008,6 +1012,40 @@ Checks how many b.ucks you or someone else has'''
 			embed.add_field(name = "Game Canceled.", value = "​")
 
 		await self.bot.edit_message(msg, new_content = None, embed = embed)
+
+
+	##Search
+	##REMEMBER: Find out why some search terms fail consistently ???games??? why???
+	@commands.command()
+	async def image(self, *, term):
+		'''image <term>
+- Searches Google images for your search term'''
+		service = build("customsearch", "v1",
+			developerKey = secrets.googleAPIkey)
+
+		#Searches for the term using the google API
+		res = service.cse().list(
+			q=term,
+			cx='018014882124522379482:xpnc40-ziuq',
+			searchType = "image",
+			safe = "high"
+			).execute()
+
+		await self.bot.say(res['items'][0]['link'])
+		return
+
+		#Creates an embed with the title as a link to the website, and a description underneath from the API
+		embed = discord.Embed(title=res['items'][0]['title'],
+					  url = res['items'][0]['formattedUrl'],
+					  description = res['items'][0]['snippet'].replace("\n"," "))
+		#Give 2 extra links in case the first wasn't the right one
+		embed.add_field(name="See Also:", value = res['items'][1]['formattedUrl'] + "\n" + res['items'][2]['formattedUrl'])
+
+		await self.bot.say(embed=embed)
+
+
+
+
 
 
 def setup(bot):
