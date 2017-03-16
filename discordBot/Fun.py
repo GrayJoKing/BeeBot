@@ -106,8 +106,8 @@ class Fun():
 		embed = discord.Embed(title = entry['word'], url = entry['permalink'], description = entry['definition'], author = entry['author'])
 		embed.add_field(name="Example:", value=entry['example'], inline = False)
 		embed.add_field(name="Author:", value=entry['author'], inline = False)
-		embed.add_field(name=str(entry['thumbs_up'])+"\U0001F44D", value=" ")
-		embed.add_field(name=str(entry['thumbs_down'])+"\U0001F44E", value=" ")
+		embed.add_field(name=str(entry['thumbs_up'])+"\U0001F44D", value=secrets.invisibleSpace)
+		embed.add_field(name=str(entry['thumbs_down'])+"\U0001F44E", value=secrets.invisibleSpace)
 
 		await self.bot.edit_message(msg,new_content=" ",embed=embed)
 
