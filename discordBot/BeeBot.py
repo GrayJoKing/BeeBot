@@ -159,7 +159,7 @@ while True:
 		if debug:
 			asyncio.get_event_loop().run_until_complete(bot.start(secrets.debugToken))
 		else:
-			bot.start(secrets.botToken)
+			asyncio.get_event_loop().run_until_complete(bot.start(secrets.botToken))
 		print("bot ended")
 		bot.close()
 		time.sleep(10)
