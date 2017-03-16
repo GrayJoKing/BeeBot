@@ -798,7 +798,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 			return multi
 
 		while played < 10:
-			msg = await self.bot.wait_for_message(timeout = 30, channel = ctx.message.channel, author = ctx.message.author)
+			msg = await self.bot.wait_for_message(timeout = 60, channel = ctx.message.channel, author = ctx.message.author)
 			if not msg:
 				await self.bot.say("Error: Slots game timed out. Cashing out money.")
 				break
@@ -809,11 +809,12 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 				board = generateSlotsBoard()
 				boardMulti = getSlotsMulti(board)
 
-				embed = discord.Embed(title = str(ctx.message.author))
+				embed = discord.Embed()
+				embed.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar_url if ctx.message.author.avatar_url else ctx.message.author.default_avater_url)
 
 				embed.add_field(name = "Board:", value = '''⏸{0}⏸
 ▶{1}◀
-⏸{2}⏸'''.format(" ".join(board[0]), " ".join(board[1]), " ".join(board[2])), inline = False)
+⏸{2}⏸'''.format(" ".join(board[0]), " ".join(board[1]), " ".join(board[2])))
 
 				if boardMulti < 0:
 					embed.add_field(name = "Board Multiplier:", value = "Oh no, your multiplier was " + str(boardMulti) + "! This means you lost everything!")
@@ -821,11 +822,10 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 					multi = 0
 					break
 				else:
-					embed.add_field(name="Board Multiplier:", value = "`" + str(round(boardMulti,2)) + "`")
-					embed.add_field(name = "Your new Multiplier:", value = "`" + str(round(boardMulti, 2)) + "`x`" + str(round(multi,2)) + "` = `" + str(round(boardMulti*multi,2)) + "`")
+					embed.add_field(name = "Your new Multiplier:", value = "`New` x `Old` = `Total`:\n" + "`" + str(round(boardMulti, 2)) + "` x `" + str(round(multi,2)) + "` = `" + str(round(boardMulti*multi,2)) + "`")
 					embed.add_field(name = "Potential Money:", value = "`" + str(math.ceil(boardMulti*multi*bet)) + " b.ucks" + "`")
-					embed.add_field(name = "Spins remaining:", value = "`" + str(10-played) + "`")
-					embed.add_field(name = "Help:", value = "If you want to spin again, type `spin`.\nIf you want to cash out, type `cash out`.")
+					embed.add_field(name = "Spins Left:", value = "`" + str(10-played) + "`")
+					embed.set_footer(text = "If you want to spin again, type `spin`. If you want to cash out, type `cash out`.")
 
 					multi *= boardMulti
 					currentMsg = await self.bot.say(embed=embed)
@@ -865,7 +865,7 @@ Checks how many b.ucks you or someone else has'''
 			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
 				await self.bot.say("You have zero b.ucks :( You can b.orrow some from me.")
 			else:
-				await self.bot.say(str(user) + " has " + str(self.bot.money[ctx.message.author.id]) + " b.ucks!")
+				await self.bot.say(str(user) + " has " + str(self.bot.money[user.id]) + " b.ucks!")
 
 	@commands.command(pass_context = True, aliases = ["go"])
 	async def aduk(self, ctx, challenger:discord.Member = None):
