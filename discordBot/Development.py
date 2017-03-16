@@ -787,7 +787,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 				else:
 					newPoints.append(point*(combo))
 
-			multi = Decimal("1.1") + reduce(lambda x,y: x+y, newPoints)
+			multi = Decimal("1") + reduce(lambda x,y: x+y, newPoints)
 
 			for col in range(5):
 				multi += values[board[0][col]] + values[board[2][col]]
