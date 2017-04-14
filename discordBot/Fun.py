@@ -3,6 +3,7 @@ from discord.ext import commands
 import random
 import secrets
 import checks
+import bounce
 
 import json
 import requests
@@ -91,7 +92,7 @@ class Fun():
 	@commands.command()
 	async def urban(self, *search):
 		'''urban <term>
-	- Defines a term using Urban Dictionary'''
+- Defines a term using Urban Dictionary'''
 		msg = await self.bot.say("Getting definition...")
 		response = requests.get("https://mashape-community-urban-dictionary.p.mashape.com/define?term=" + "%20".join(search),
 			headers={
@@ -110,6 +111,33 @@ class Fun():
 		embed.add_field(name=str(entry['thumbs_down'])+"\U0001F44E", value=secrets.invisibleSpace)
 
 		await self.bot.edit_message(msg,new_content=" ",embed=embed)
+
+
+        #Bounce
+	@commands.command(aliases = ['bounce'])
+	async def ounce(self, *, code):
+                '''b.ounce <`code`> <input>
+- Codes with an esotoric programming language I invented!
+'''
+                test = code.split("```")
+                if len(test) == 1:
+                        test = code.split("`")
+                code = test[1]
+                if len(test) > 2:
+                        inp = test[2]
+                else:
+                        inp = ''
+                output, diction = bounce.runBounce(code, inp)
+                if output == "success":
+                        await self.bot.say('```Output:\n' + str(diction["output"])
+                                           + "\n\nInstructions executed: " + str(diction["executed"])
+                                           + "\nBounces: " + str(diction["bounces"]) + "```")
+                else:
+                        await self.bot.say("```Error: " + str(diction['reason'])
+                                           + "\nLine: " + str(diction['line'])
+                                           + "\nPointer: " + str(diction['pointer']) + "```")
+
+
 
 def setup(bot):
 	bot.add_cog(Fun(bot))

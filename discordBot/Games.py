@@ -39,6 +39,21 @@ class Games():
 					self.bot.wordLists[wordType].append(line)
 			wordList.close()
 
+	def getLeaderBoard(self):
+		board = []
+		for user in self.bot.bangStats:
+			if len(board) == 0 or self.bot.bangStats[user]["lStreak"] > board[-1][1]:
+				board.append((user, self.bot.bangStats[user]["lStreak"]))
+				i = -2
+				while i > -len(board) and board[i][1] < board[i+1][1]:
+					temp = board[i]
+					board[i] = board[i+1]
+					board[i+1] = temp
+					i -= 1
+				if len(board) > 10:
+					board.pop()
+		return board
+
 	#b.ang
 	#Game
 	@commands.group(pass_context = True)
@@ -75,18 +90,12 @@ class Games():
 				txt += "\nYou beat your longest streak! You are now at `{0}`!".format(str(self.bot.bangStats[userid]['cStreak']))
 
 				#checks whether you can go on the leaderboard
-				if self.bot.bangStats[userid]['lStreak'] > bangStats["leaderboard"][-1][1]:
-					i = 0
-					while i < len(self.bot.bangStats["leaderboard"]):
-						if self.bot.bangStats["leaderboard"][i][1] > self.bot.bangStats[userid]['lStreak']:
-							i += 1
-						else:
-							break
-					for user in self.bot.bangStats["leaderboard"]:
-						if user[0] == userid:
-							self.bot.bangStats["leaderboard"].pop(bangStats["leaderboard"].index(user))
+				leaderboard = self.getLeaderBoard()
+				for place in range(len(leaderboard)):
+					if leaderboard[place][0] == userid:
+						txt += "\nYou are now on the leaderboard at number `{}`!".format(place)
 
-					self.bot.bangStats["leaderboard"].insert(i,(userid, bangStats[userid]['lStreak']))
+
 		else:
 			#You're dead...
 			txt = ":dizzy_face::boom::gun:\nOh dear. You're dead, `{0}`. Your streak was: `{1}`!".format(user, str(self.bot.bangStats[userid]['cStreak']))
@@ -123,16 +132,15 @@ class Games():
 	async def bangleaderboard(self):
 
 		msg = await self.bot.say("`Getting leaderboard...`")
-
+		leaderboard = self.getLeaderBoard()
 		txt = "```"
 		i = 0
 		#the reason this take so long is that the bot is retrieving the info of everyone on the list
 		#This is highly rate-limited but useful in case someone changes their name
-		while i < 10:
-			place = self.bot.bangStats["leaderboard"][i]
-			user = await self.bot.get_user_info(place[0])
-			txt += str(i+1) + ": " + str(user) + " " + str(place[1]) + "\n"
-			i += 1
+		for i in range(len(leaderboard)):
+			user = await self.bot.get_user_info(leaderboard[i][0])
+			txt += str(i+1) + ": " + str(user) + " " + str(leaderboard[i][1]) + "\n"
+
 		txt += "```"
 
 		await self.bot.edit_message(msg,txt)

@@ -216,7 +216,7 @@ Note that you do not need to use any of the "" <> [] {} | symbols in the actual 
 		'''invite
 - Lets you invite Bee to your own server!'''
 		#Creates an embed with a linked title as an invite
-		perms = discord.Permissions(administrator)
+		perms = discord.Permissions()
 		perms.administrator = True
 		embed = discord.Embed(title = "Click to invite me to your server!", url = discord.utils.oauth_url(self.bot.user.id, permissions = perms))
 		embed.add_field(name = "Info:", value = "BeeBot is a fun bot with a wide range of uses. It has mod tools, basic commands, and most importantly... Games! Play Russian Roulette, Minesweeper, Hangman and more!")

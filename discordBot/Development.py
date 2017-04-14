@@ -701,6 +701,11 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 - 48.2% chance of losing
 - 1% chance of losing everything'''
 
+		replace = {"k":"0"*3, "m":"0"*6, "b":"0"*9, "t":"0"*12, "q":"0"*15}
+
+		for j in replace:
+			bet = bet.replace(j,replace[j])
+
 		try:
 			bet = int(bet)
 		except:
@@ -730,10 +735,10 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 
 		multi = 1
 		played = 0
-		iconList = ["\U0001F4A9", "🛑", u"\U0001F525", u"\u274C", u"\U0001F44E",
+		iconList = ["\U0001F4A9", "🚫", u"\U0001F525", u"\u274C", u"\U0001F44E",
 		          u"\U0001F44D", "✅", u"\U0001F368", u"\U0001F4B3", u"\U0001F48E"]
 
-		values = {u"\U0001F4A9":Decimal("-0.13"), "🛑":Decimal("-0.10"), u"\U0001F525":Decimal("-0.07"), u"\u274C":Decimal("-0.04"), u"\U0001F44E":Decimal("-0.01"), u"\U0001F44D":Decimal("0.01"), "✅":Decimal("0.04"), u"\U0001F368":Decimal("0.07"), u"\U0001F4B3":Decimal("0.10"), u"\U0001F48E":Decimal("0.13")}
+		values = {u"\U0001F4A9":Decimal("-0.13"), "🚫":Decimal("-0.10"), u"\U0001F525":Decimal("-0.07"), u"\u274C":Decimal("-0.04"), u"\U0001F44E":Decimal("-0.01"), u"\U0001F44D":Decimal("0.01"), "✅":Decimal("0.04"), u"\U0001F368":Decimal("0.07"), u"\U0001F4B3":Decimal("0.10"), u"\U0001F48E":Decimal("0.13")}
 
 		def generateSlotsBoard():
 			return list(map(lambda row: list(map(lambda col: choice(iconList), range(5))), range(3)))
@@ -787,7 +792,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 				else:
 					newPoints.append(point*(combo))
 
-			multi = Decimal("1") + reduce(lambda x,y: x+y, newPoints)
+			multi = 1 + reduce(lambda x,y: x+y, newPoints)
 
 			for col in range(5):
 				multi += values[board[0][col]] + values[board[2][col]]
