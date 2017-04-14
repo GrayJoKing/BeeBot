@@ -94,7 +94,7 @@ def runBounce(code, inp):
                 output += chr(stack[-1])
                 stack.pop()
 
-        elif inst == ";":
+        elif inst == ",":
             if len(inp) == 0:
                 pointer += direction
                 bounces += 1
@@ -104,7 +104,7 @@ def runBounce(code, inp):
                     inp.pop()
                 except:
                     return "error", {"reason":"Input is not an integer.", "line":row, "instruction":inst, "pointer":pointer}
-        elif inst == ",":
+        elif inst == ";":
             if len(inp) == 0:
                 pointer += direction
                 bounces += 1
@@ -166,12 +166,3 @@ def runBounce(code, inp):
             executed -= 1
 
     return "error", {"reason":"Program ran over 10000 instructions. Probable infinite loop.", "line":line, "instruction":inst, "pointer":pointer}            
-
-
-
-
-
-
-
-
-
