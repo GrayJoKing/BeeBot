@@ -694,7 +694,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 				await self.bot.edit_message(msg, new_content="Error while getting comic.")
 
 	@commands.command(pass_context = True, aliases = ['slot', 'spin', 'et'])
-	async def slots(self, ctx, bet = None):
+	async def slots(self, ctx, bet = "wrong"):
 		'''slots <bet>
 - Plays a game of slots
 - 50.8% chance of winning
@@ -815,7 +815,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 				boardMulti = getSlotsMulti(board)
 
 				embed = discord.Embed()
-				embed.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar_url if ctx.message.author.avatar_url else ctx.message.author.default_avater_url)
+				embed.set_author(name=ctx.message.author, icon_url=ctx.message.author.avatar_url if ctx.message.author.avatar_url else ctx.message.author.default_avatar_url)
 
 				embed.add_field(name = "Board:", value = '''⏸{0}⏸
 ▶{1}◀

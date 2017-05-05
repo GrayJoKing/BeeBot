@@ -133,7 +133,8 @@ def runBounce(code, inp):
                 stack.append(stack[-1])
         elif inst in "%+-*/":
             if len(stack) < 2:
-                return "error", {"reason":"Stack is insufficient.", "line":row, "instruction":inst, "pointer":pointer}
+                pointer += direction
+                bounces += 1
             else:
                 if inst == "%":
                     temp = stack[-2]

@@ -40,19 +40,12 @@ class Games():
 			wordList.close()
 
 	def getLeaderBoard(self):
-		board = []
+		scores = []
 		for user in self.bot.bangStats:
-			if len(board) == 0 or self.bot.bangStats[user]["lStreak"] > board[-1][1]:
-				board.append((user, self.bot.bangStats[user]["lStreak"]))
-				i = -2
-				while i > -len(board) and board[i][1] < board[i+1][1]:
-					temp = board[i]
-					board[i] = board[i+1]
-					board[i+1] = temp
-					i -= 1
-				if len(board) > 10:
-					board.pop()
-		return board
+			scores.append([user, self.bot.bangStats[user]])
+		scores.sort(key=lambda x: x[1]["lStreak"], reverse=True)
+		scores = scores[:10]
+		return scores
 
 	#b.ang
 	#Game
@@ -87,13 +80,13 @@ class Games():
 			#Checks whether this is your longest streak
 			if self.bot.bangStats[userid]['cStreak'] > self.bot.bangStats[userid]['lStreak']:
 				self.bot.bangStats[userid]['lStreak'] = self.bot.bangStats[userid]['cStreak']
-				txt += "\nYou beat your longest streak! You are now at `{0}`!".format(str(self.bot.bangStats[userid]['cStreak']))
+				txt += "\nYou beat your longest streak! You are now at `{0}`!".format(self.bot.bangStats[userid]['cStreak'])
 
 				#checks whether you can go on the leaderboard
 				leaderboard = self.getLeaderBoard()
 				for place in range(len(leaderboard)):
 					if leaderboard[place][0] == userid:
-						txt += "\nYou are now on the leaderboard at number `{}`!".format(place)
+						txt += "\nYou are on the leaderboard at number `{}`!".format(place)
 
 
 		else:
@@ -139,7 +132,7 @@ class Games():
 		#This is highly rate-limited but useful in case someone changes their name
 		for i in range(len(leaderboard)):
 			user = await self.bot.get_user_info(leaderboard[i][0])
-			txt += str(i+1) + ": " + str(user) + " " + str(leaderboard[i][1]) + "\n"
+			txt += str(i+1) + ": " + str(user) + " " + str(leaderboard[i][1]["lStreak"]) + "\n"
 
 		txt += "```"
 

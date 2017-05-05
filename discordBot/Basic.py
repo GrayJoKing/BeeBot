@@ -15,6 +15,7 @@ import urllib
 
 #Calc
 import calc
+import asyncio
 
 #Info
 import re
