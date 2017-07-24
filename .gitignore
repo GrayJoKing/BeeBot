@@ -54,3 +54,5 @@ money.json
 suggestions.txt
 TO-DO LIST.txt
 money.json
+discordBot/serverInfo.json
+*.pyc

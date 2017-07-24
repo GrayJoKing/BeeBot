@@ -23,11 +23,20 @@ import traceback
 import sys
 import math
 
+#profilePics
+import random
+import os
+
+#serverInfo
+import json
+
 #Reminders:
 ##USE ASCIIDOC FOR NICE COLOURED CODE BLOCK
+#Install packages with "python -m pip install"
+#	install - pillow, colour
 
 #RandomCog is used as in place of random to avoid conflicts
-extensions = ["Basic","Randomcog","Mod","Fun","Games","Development","Secret_stuff"]
+extensions = ["Basic","Randomcog","Mod","Fun","Games","Development", "Programming","Secret_stuff"]
 
 #A debug mode for testing out new features or improving old ones
 
@@ -37,6 +46,8 @@ if debug:
 	print("RUNNING ON DEBUG TOKEN")
 else:
 	beePrefixes = ["b.","bee.","\U0001F41D."]
+
+startTime = time.time()
 
 while True:
 	try:
@@ -49,29 +60,41 @@ while True:
 		##Welcomes members to the server
 		@bot.event
 		async def on_member_join(member):
-			await bot.send_message(member.server, 'Welcome {0} to {1}!'.format(member.mention, member.server.name))
+			if bot.serverInfo['welcome']:
+				class SafeDict(dict):
+					def __missing__(self, key):
+						return '{' + key + '}'
+				await bot.send_message(member.server, bot.serverInfo['welcome'].format_map(SafeDict(mention=member.mention, name=member.name, servername=member.server.name)))
 			##assign role later
 
 		##On member leave
 		##Says goodbye to members
 		@bot.event
 		async def on_member_remove(member):
-			bans = await bot.get_bans(member.server)
-			if member not in bans:
-				await bot.send_message(member.server, 'Bye {}!'.format(str(member)))
-			else:
-				await bot.send_message(member.server, '{} was banned.'.format(str(member)))
+			if bot.serverInfo['bye']:
+				class SafeDict(dict):
+					def __missing__(self, key):
+						return '{' + key + '}'
+				await bot.send_message(member.server, bot.serverInfo['bye'].format_map(SafeDict(name=member.name, servername=member.server.name)))
 
 		##On bot startup
 		##Print stuff to cmd line and changes Playing to the command list command
 		@bot.event
 		async def on_ready():
-			print('Logged in as')
-			print(bot.user.name)
-			print(bot.user.id)
+			print('Logged in as {}'.format(bot.user.name))
 			#Sets the startTimeof the bot (for b.uptime)
-			bot.startTime = time.time()
-			await bot.change_presence(game=discord.Game(name="b.cmds"))
+			bot.startTime = startTime
+			await bot.change_presence(game=discord.Game(name=(bot.command_prefix[0] + "cmds")))
+			print("Set Game as {}cmds".format(bot.command_prefix[0]))
+			try:
+				await bot.edit_profile(None, avatar=open("profilePics\\" + random.choice(os.listdir("profilePics\\")), 'rb').read())
+				print("Set random profile pic")
+			except Exception as e:
+				print("FAILED: Profile Pic\n" + str(e))
+
+			with open('serverInfo.json','r') as fp:
+				bot.serverInfo = json.load(fp)
+				fp.close()
 
 		##checks messages
 		@bot.event
@@ -122,13 +145,13 @@ while True:
 				minutes = math.floor(tim/60)%60
 				#Gets the amount of seconds, rounding up
 				seconds = math.ceil(tim%60)
-				if days != 0:
+				if not days:
 					allTime.append("`" + str(days) + "` days")
-				if hours != 0:
+				if not hours:
 					allTime.append("`" + str(hours) + "` hours")
-				if minutes != 0:
+				if not minutes:
 					allTime.append("`" + str(minutes) + "` minutes")
-				if seconds != 0:
+				if not seconds:
 					allTime.append("`" + str(seconds) + "` seconds")
 				await bot.send_message(ctx.message.channel, 'That command is on cooldown. Try again in {}'.format(", ".join(allTime)))
 			elif type(exception) != commands.CommandNotFound:
@@ -138,11 +161,15 @@ while True:
 
 		@bot.event
 		async def on_server_join(server):
-			await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was added to the server `{0}`, with `{1}` members. Yay!".format(server.name, server.member_count-1))
+			if not debug:
+				await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was added to the server `{0}`, with `{1}` members. Yay!".format(server.name, server.member_count-1))
+			if server.id not in bot.serverInfo:
+				bot.serverInfo[server.id] = {}
 
 		@bot.event
 		async def on_server_remove(server):
-			await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was removed from `{0}` or the server was deleted.".format(server.name))
+			if not debug:
+				await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was removed from `{0}` or the server was deleted.".format(server.name))
 
 
 		#Loads all the extensions
@@ -150,23 +177,21 @@ while True:
 			for extension in extensions:
 				try:
 					bot.load_extension(extension)
-					print("Loaded extension " + extension)
 				except Exception as e:
 					print("Failed to load " + extension + " because " + str(e))
 
 		#Runs the bot (from my debug token if needed)
-
 		if debug:
 			asyncio.get_event_loop().run_until_complete(bot.start(secrets.debugToken))
 		else:
 			asyncio.get_event_loop().run_until_complete(bot.start(secrets.botToken))
 		print("bot ended")
 		bot.close()
-		time.sleep(10)
+
 	except Exception as e:
 		print(e)
 		try:
 			bot.close()
 		except:
 			pass
-		time.sleep(10)
+	time.sleep(10)

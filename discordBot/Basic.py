@@ -87,11 +87,11 @@ class Basic():
 
 		#Emoji dictionary
 		emojiDict = {"Basic":"\U0001F1E7","Games":"\U0001F1EC","Fun":"\U0001F1EB",
-				"Random":"\U0001F1F7","Development":"\U0001F1E9", "Mod":"🇲",
+				"Random":"\U0001F1F7","Development":"\U0001F1E9", "Mod":"🇲", "Programming":"🇵",
 				"home":"🔤", "help":"❓"}
 		#This helps define what order the emojis will be reacted in, as well as making wait_for_reaction shorter
 		#I don't use the dictionary cause it is in random order
-		emojiList = ["home","Basic","Mod","Random","Games","Fun","Development","help"]
+		emojiList = ["home","Basic","Mod","Random","Games","Fun","Programming","Development","help"]
 
 		#Checks if the bot is able to clear reactions/remove other people's reactions
 		#This will be to provide a better cmds function if it is a DM, but it is not implemented yet
@@ -108,6 +108,7 @@ Use reactions to navigate the menu (or if you can't, use b.help <category>):
 	- Random
 	- Games
 	- Fun
+	- Programming
 	- Development```''')
 
 		#Adds all the reactions in emojiList
@@ -153,7 +154,7 @@ Note that you do not need to use any of the "" <> [] {} | symbols in the actual 
 				for emoji in emojiList:
 					if res == emojiDict[emoji]:
 						#Uses the getCogList function above
-						await self.bot.edit_message(msg, "```Make sure to prefix each command with 'b.'\nUse b.help <command> to get more info on a command:\n" + self.getCogList(emoji) + "```")
+						await self.bot.edit_message(msg, "```" + emoji + ":\nMake sure to prefix each command with 'b.'\nUse b.help <command> to get more info on a command:\n\n" + self.getCogList(emoji) + "```")
 
 	##Ping
 	@commands.command()
@@ -220,7 +221,7 @@ Note that you do not need to use any of the "" <> [] {} | symbols in the actual 
 		perms = discord.Permissions()
 		perms.administrator = True
 		embed = discord.Embed(title = "Click to invite me to your server!", url = discord.utils.oauth_url(self.bot.user.id, permissions = perms))
-		embed.add_field(name = "Info:", value = "BeeBot is a fun bot with a wide range of uses. It has mod tools, basic commands, and most importantly... Games! Play Russian Roulette, Minesweeper, Hangman and more!")
+		embed.add_field(name = "Info:", value = "BeeBot is a fun bot with a wide range of uses. It has mod tools, basic commands, and most importantly... games! Play Cards Against Humanity, Russian Roulette, Minesweeper, Hangman and more!\n\nWarning: BeeBot is in a beta stage and may not work all the time. Any commands in the Development section are being tested and may not work properly. Also, the bot may not be up 100% of the time due to being hosted on an old laptop.")
 		embed.add_field(name = "Join the support server where you can play with a developmental version or suggest new commands!", value = "discord.gg/Qwgw2N3", inline = False)
 
 		await self.bot.say(embed=embed)
@@ -249,7 +250,7 @@ And you, the user, for inviting me to your server and using me!```''')
 		#Searches for the term using the google API
 		res = service.cse().list(
 			q=term,
-			cx='018014882124522379482:xpnc40-ziuq',
+			cx='018014882124522379482:xpnc40-ziuq', #probably shouldn't have this here
 			).execute()
 
 		#Creates an embed with the title as a link to the website, and a description underneath from the API
@@ -269,7 +270,7 @@ And you, the user, for inviting me to your server and using me!```''')
 - Or gives you a popular video if no search term is given'''
 		#Checks if a search term was given
 		if search:
-			msg = await self.bot.say("Getting a video for: `" + search.replace("@","@​") + "`") #invisible space
+			msg = await self.bot.say("Getting a video for: `" + secrets.clean(search) + "`")
 		else:
 			msg = await self.bot.say("Getting a popular video!")
 
@@ -278,7 +279,11 @@ And you, the user, for inviting me to your server and using me!```''')
 		async with aiohttp.get("http://www.youtube.com/results?" + query_string) as r:
 			if r.status == 200:
 				html_content = await r.text()
-				url = "https://youtu.be/" + re.findall(r'href=\"\/watch\?v=(.{11})',html_content)[0]
+				vids = re.findall(r'href=\"\/watch\?v=(.{11})',html_content)
+				if not vids:
+					await self.bot.edit_message(msg, "No videos were found.")
+					return
+				url = "https://youtu.be/" + vids[0]
 			else:
 				await self.bot.edit_message(msg, new_content="Error while getting video.")
 				return
@@ -297,7 +302,7 @@ And you, the user, for inviting me to your server and using me!```''')
 
 		embed = discord.Embed(title = "Info")
 		embed.add_field(name = "Views:", value = views, inline = False)
-		embed.add_field(name = "Likes:", value = likes).add_field(name = "Dislikes:", value = dislikes)
+		embed.add_field(name = "👍", value = likes).add_field(name = "👎", value = dislikes)
 
 		#Says the url to get discord to post their embed, as you can't post videos in an embed
 		await self.bot.say(url)
@@ -310,13 +315,14 @@ And you, the user, for inviting me to your server and using me!```''')
 	#info
 	@commands.command(pass_context = True)
 	async def info(self, ctx, *, item = '' ):
-		'''info <command>
+		'''info [<user>|<emoji>|"me"|"server"|<channel>]
 - Shows info about a multitude of things
 Commands:
 - No Command
 	- Displays info about BeeBot
 - <user>
 	- Displays info about the user
+	- The search function on this is a bit wonky
 - Emoji or <emoji>
 	- Displays info about the server's custom emojis or a specific one
 	- Shortcut: b.emoji [<emoji>]
@@ -328,7 +334,7 @@ Commands:
 	- Shortcut: b.server
 - Channel or <channel>
 	- Displays info about the channel you are currently on or one specified
-	- Shortcut (for this channel only): b.channel [<channel>]'''
+	- Shortcut: b.channel [<channel>]'''
 
 		itemType = re.match(r'<(@!?|#|:[a-zA-Z0-9]+:)([0-9]+)>$', item)
 
@@ -354,7 +360,9 @@ Commands:
 		elif item.lower() == "emoji":
 			await self.emojiInfo(ctx.message.server)
 		elif item == "":
-			await self.beeInfo()
+			ctx.message.content = self.bot.command_prefix[0] + "invite"
+			print(ctx.message.content)
+			await self.bot.process_commands(ctx.message)
 		else:
 			user = ctx.message.server.get_member_named(item)
 			if not user:
@@ -458,7 +466,7 @@ Commands:
 		if not prob:
 			await self.bot.say(embed=embed)
 		else:
-			await self.bot.say('"{0}" matched with {1} with a probability of {2}%'.format(search, user.name, prob*100), embed=embed)
+			await self.bot.say('"{0}" matched with {1} with a probability of {2}%. This... may not be accurate.'.format(search, user.name, prob*100), embed=embed)
 
 
 	async def emojiInfo(self, server, id = None):
@@ -519,11 +527,6 @@ Commands:
 
 		await self.bot.say(embed = embed)
 
-	async def beeInfo(self):
-		#edit this
-		await self.bot.say("Testing")
-
-
 	@commands.command()
 	async def calc(self, *message):
 		'''calc <expression>
@@ -561,21 +564,70 @@ There are still some issues with this. Imaginary numbers render weirdly.'''
 			else:
 				await self.bot.say("The answer is `" + str(answer) + "`!")
 
-	@commands.command()
-	async def ug(self, *, description = ''):
-		return
-		'''b.ug <description>
+	@commands.command(pass_context = True, aliases = ['bug'])
+	async def ug(self, ctx):
+		'''b.ug
 Reports bugs to the creator of this bot. Please append a short description of the bug.
-This command will also record the contents of the last 10 messages in your channel.
+This command will also send an invite to the developer to inspect the bug.
 Warning: Anyone who is deemed to be abusing this will be blacklisted from its use.'''
+
+		await self.bot.say("Please write a comprehensive description of the bug. Type `Cancel` to cancel this. If the bug is in this bug reporting feature or something similar, please visit the support server at `{}`".format(secrets.noPreview(secrets.supportServerInvite)))
+		msg = await self.bot.wait_for_message(author = ctx.message.author, channel = ctx.message.channel)
+		if msg.content.lower() == "cancel":
+			await self.bot.say("Bug report cancelled.")
+			return
+		description = msg.content
+
+		await self.bot.send_message(self.bot.get_channel(secrets.bugChannelID), secrets.clean(
+'''```USER:{0}
+SERVER: {1}
+CHANNEL: {2}
+DESCRIPTION: {3}
+INVITE: {4}
+```'''.format(ctx.message.author, ctx.message.server, ctx.message.channel, description, secrets.noPreview((await self.bot.create_invite(ctx.message.channel)).url))))
+
+		await self.bot.say("Thank you for your report!")
+
 
 	@commands.command()
 	async def stats(self):
 		'''stats
 Shows stats about the bot'''
-		await self.bot.say('''Guilds: {0}
-Channels: {1}
-Members: {2}'''.format(len(self.bot.servers), reduce(lambda x,y: x+y, list(map(lambda server: len(server.channels), self.bot.servers))), reduce(lambda x,y: x+y, list(map(lambda server: len(server.members), self.bot.servers)))))
+		embed = discord.Embed(title="Stats")
+		embed.add_field(name="Servers:", value = str(len(self.bot.servers)-1))
+		embed.add_field(name="Channels:", value = str(reduce(lambda x,y: x+y, list(map(lambda server: len(server.channels), self.bot.servers)))))
+		embed.add_field(name="Members:", value = str(reduce(lambda x,y: x+y, list(map(lambda server: len(server.members), self.bot.servers)))))
+		await self.bot.say(embed=embed)
+
+	##Image
+	##REMEMBER: Find out why some search terms fail consistently ???games??? why???
+	@commands.command()
+	async def image(self, *, term):
+		'''image <term>
+- Searches Google images for your search term'''
+		service = build("customsearch", "v1",
+			developerKey = secrets.googleAPIkey)
+
+		#Searches for the term using the google API
+		res = service.cse().list(
+			q=term,
+			cx='018014882124522379482:xpnc40-ziuq',
+			searchType = "image",
+			safe = "high"
+			).execute()
+
+		await self.bot.say(res['items'][0]['link'])
+		return
+
+		#Creates an embed with the title as a link to the website, and a description underneath from the API
+		embed = discord.Embed(title=res['items'][0]['title'],
+					  url = res['items'][0]['formattedUrl'],
+					  description = res['items'][0]['snippet'].replace("\n"," "))
+		#Give 2 extra links in case the first wasn't the right one
+		embed.add_field(name="See Also:", value = res['items'][1]['formattedUrl'] + "\n" + res['items'][2]['formattedUrl'])
+
+		await self.bot.say(embed=embed)
+
 
 def setup(bot):
 	bot.add_cog(Basic(bot))

@@ -3,14 +3,71 @@ from discord.ext import commands
 import random
 import secrets
 import checks
-import bounce
 
-import json
 import requests
+
+#xkcd
+import json
+import aiohttp
+import math
 
 class Fun():
 	def __init__(self, bot):
 		self.bot = bot
+
+
+	@commands.command()
+	async def xkcd(self, num = None):
+		'''xkcd [<number>]
+- Gets a random xkcd comic
+- If a number is given, that comic is shown'''
+		msg = await self.bot.say("Getting xkcd comic!")
+		async with aiohttp.get('http://xkcd.com/info.0.json') as r:
+			if r.status == 200:
+				js = await r.json()
+				max = js['num']
+			else:
+				await self.bot.edit_message(msg, new_content="Error while getting comic.")
+
+		if not num:
+			xkcd = math.ceil(random()*max)
+		elif num.isnumeric():
+			xkcd = int(num)
+			if xkcd > max:
+				await self.bot.edit_message(msg, "Error: Comic not found")
+				return
+		else:
+			await self.bot.edit_message(msg, "Error: Not a number. (Relevant xkcd maybe coming soon)")
+			return
+
+		async with aiohttp.get('https://xkcd.com/{0}/info.0.json'.format(xkcd)) as r:
+			if r.status == 200:
+				js = await r.json()
+				embed = discord.Embed(colour=discord.Colour.gold(), title = js['safe_title'] + " #"+str(xkcd), url = js['img'])
+				embed.set_image(url = js['img'])
+				embed.add_field(name = 'Date', value = "/".join([js['day'],js['month'],js['year']]), inline = False)
+				embed.add_field(name = 'Explanation', value = "http://www.explainxkcd.com/wiki/index.php/" + str(xkcd), inline = False)
+				#embed.add_field(name = 'Alt-Text', value = js['alt'])
+				embed.set_footer(text = js['alt'])
+				await self.bot.edit_message(msg, new_content=" ",embed = embed)
+			else:
+				await self.bot.edit_message(msg, new_content="Error while getting comic.")
+
+	@commands.command(pass_context = True, aliases = ["ucks","alance","🏦"])
+	async def ank(self, ctx, user:discord.User = None):
+		'''b.ank [<user>]
+Checks how many b.ucks you or someone else has'''
+		if not user:
+			user = ctx.message.author
+			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
+				await self.bot.say(str(user) + " has zero b.ucks :( B.orrow some from me?")
+			else:
+				await self.bot.say(str(user) + " has " + str(self.bot.money[ctx.message.author.id]) + " b.ucks!")
+		else:
+			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
+				await self.bot.say("You have zero b.ucks :( You can b.orrow some from me.")
+			else:
+				await self.bot.say(str(user) + " has " + str(self.bot.money[user.id]) + " b.ucks!")
 
 	#Slap
 	@commands.command(pass_context = True)
@@ -111,32 +168,6 @@ class Fun():
 		embed.add_field(name=str(entry['thumbs_down'])+"\U0001F44E", value=secrets.invisibleSpace)
 
 		await self.bot.edit_message(msg,new_content=" ",embed=embed)
-
-
-        #Bounce
-	@commands.command(aliases = ['bounce'])
-	async def ounce(self, *, code):
-                '''b.ounce <`code`> <input>
-- Codes with an esotoric programming language I invented!
-'''
-                test = code.split("```")
-                if len(test) == 1:
-                        test = code.split("`")
-                code = test[1]
-                if len(test) > 2:
-                        inp = test[2]
-                else:
-                        inp = ''
-                output, diction = bounce.runBounce(code, inp)
-                if output == "success":
-                        await self.bot.say('```Output:\n' + str(diction["output"])
-                                           + "\n\nInstructions executed: " + str(diction["executed"])
-                                           + "\nBounces: " + str(diction["bounces"]) + "```")
-                else:
-                        await self.bot.say("```Error: " + str(diction['reason'])
-                                           + "\nLine: " + str(diction['line'])
-                                           + "\nPointer: " + str(diction['pointer']) + "```")
-
 
 
 def setup(bot):

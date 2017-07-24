@@ -43,6 +43,7 @@ class Games():
 		scores = []
 		for user in self.bot.bangStats:
 			scores.append([user, self.bot.bangStats[user]])
+		print(scores)
 		scores.sort(key=lambda x: x[1]["lStreak"], reverse=True)
 		scores = scores[:10]
 		return scores
@@ -131,8 +132,15 @@ class Games():
 		#the reason this take so long is that the bot is retrieving the info of everyone on the list
 		#This is highly rate-limited but useful in case someone changes their name
 		for i in range(len(leaderboard)):
-			user = await self.bot.get_user_info(leaderboard[i][0])
-			txt += str(i+1) + ": " + str(user) + " " + str(leaderboard[i][1]["lStreak"]) + "\n"
+			if 'name' not in leaderboard[i][1]:
+				user = await self.bot.get_user_info(leaderboard[i][0])
+				self.bot.bangStats[leaderboard[i][0]]['name'] = user.name
+				with open('ang (copy).json','w') as fp:
+					json.dump(self.bot.bangStats, fp)
+				name = user.name
+			else:
+				name = leaderboard[i][1]['name']
+			txt += str(i+1) + ": " + name + " " + str(leaderboard[i][1]["lStreak"]) + "\n"
 
 		txt += "```"
 

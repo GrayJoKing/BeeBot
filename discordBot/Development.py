@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 #TTT, TTTQ
-from random import random, choice
+from random import random, choice, shuffle
 
 #image
 from googleapiclient.discovery import build
@@ -11,15 +11,28 @@ import secrets
 #Suggestions
 import time
 
+import json
+import math
 import copy
 import secrets
 from battleship import *
 import checks
 
-#xkcd
-import json
-import aiohttp
-import math
+#pong, invert
+from PIL import Image, ImageDraw, ImageOps, ImageChops, ImageFont, ImageFilter
+import asyncio
+
+#invert
+import requests
+from io import BytesIO
+
+#giveme
+import re
+import colour
+import os
+
+#cah
+from html import unescape
 
 ##Translate
 #from google.cloud import translate
@@ -103,9 +116,446 @@ class Development():
 			bot.money = json.load(fp)
 			fp.close()
 
+
+	@commands.command(pass_context=True)
+	async def give(self, ctx, user:discord.User, amount:int):
+		'''give <user> <amount>
+- Gives a user some money'''
+
+		if ctx.message.author.id in self.bot.money and self.bot.money[ctx.message.author.id] >= amount:
+			self.bot.money[ctx.message.author.id] -= amount
+			if user.id not in self.bot.money:
+				self.bot.money[user.id] = 0
+
+			self.bot.money[user.id] += amount
+
+			await self.bot.say("You gave `{}` bucks to {}".format(amount, secrets.clean(user.display_name)))
+
+			with open('money.json','w') as fp:
+				json.dump(self.bot.money, fp)
+		else:
+			await self.bot.say("You don't have enough money!")
+
+
+
+	@commands.command(pass_context=True)
+	async def welcome(self, ctx, * , message = ""):
+		'''welcome <message>
+- Customise the welcome message for new users
+- Use {mention} to mention a new member
+- {name} to say their name without a ping
+- {servername} for the name of the server
+- Type nothing to turn off the welcome message'''
+
+		if not await checks.has_perms(self.bot, ctx.message, ["administrator"]):
+			return
+
+		self.bot.serverInfo['welcome'] = message
+		await self.bot.say("Welome message edited!")
+
+		with open('serverInfo.json','w') as fp:
+			json.dump(self.bot.serverInfo, fp)
+
+	@commands.command(pass_context=True, aliases=['goodbye', 'bye'])
+	async def ye(self, ctx, * , message = ""):
+		'''b.ye <message>
+- Customise the goodbye message for users
+- {name} to say their name without a ping
+- {servername} for the name of the server
+- Type nothing to turn off the welcome message'''
+
+		if not await checks.has_perms(self.bot, ctx.message, ["administrator"]):
+			return
+
+		self.bot.serverInfo['bye'] = message
+		await self.bot.say("Goodbye message edited!")
+
+		with open('serverInfo.json','w') as fp:
+			json.dump(self.bot.serverInfo, fp)
+
+	@commands.command(pass_context = True)
+	async def spoiler(self, ctx, *, text):
+		'''spoiler <text>
+- Creates a "Hover to see spoiler text"'''
+		await self.bot.delete_message(ctx.message)
+
+		maxWidth = 300
+		border = 5
+
+		redImage = Image.new('RGB', (200, 200), (255,255,255))
+		d = ImageDraw.Draw(redImage)
+		output = [""]
+
+		fnt = ImageFont.truetype("impact.ttf", size = 20)
+
+		text = text.split(" ")
+
+		for word in text:
+			w,h =  d.textsize(output[-1] + " " + word, fnt)
+			if w < maxWidth:
+				output[-1] = output[-1] + " " + word
+			else:
+				w,h = d.textsize(word, fnt)
+				if w > maxWidth:
+					output.append("")
+					for letter in word:
+						w,h = d.textsize(output[-1] + letter + "-", fnt)
+						if w > maxWidth:
+							output[-1] += "-"
+							output.append("")
+						output[-1] += letter
+				else:
+					output.append(word)
+
+		w, h = d.textsize("\n".join(output), fnt)
+
+		img = Image.new('RGB', (maxWidth,h+2*border), (0,0,0))
+		d = ImageDraw.Draw(img)
+		d.multiline_text((0,border), "\n".join(output), (255,255,255), fnt)
+
+		hover = Image.new('RGB', (2*border+maxWidth,h+3*border), (0,0,0))
+		d = ImageDraw.Draw(hover)
+		d.multiline_text((border,border), "[Hover for spoiler]", (255,255,255), fnt)
+
+		hover.save("TempFiles/{}.gif".format(ctx.message.id), save_all = True, append_images = [img], duration = [1, 100000])
+		await self.bot.send_file(ctx.message.channel, "TempFiles/{}.gif".format(ctx.message.id))
+		os.remove("TempFiles/{}.gif".format(ctx.message.id))
+
+	@commands.command(pass_context = True)
+	async def cah(self, ctx):
+		'''cah
+- Cards Against Humanity!
+- 4-10 players, appropriate for ages 1(8) and up!
+- Thanks to https://www.crhallberg.com/cah/json/ for providing the CAH json'''
+
+		messageReaction = choice([("Put your 🖐 up if you want to play!", "🖐"), ("🍆s out if you want to play!", "🍆"), ("Touch my 🍆 to play!", "🍆"), ("Push the 🔴 to play!", "🔴")])
+		msg = await self.bot.say("{} When everyone is in, the host should press the ✅!".format(messageReaction[0]))
+		await self.bot.add_reaction(msg, messageReaction[1])
+		await self.bot.add_reaction(msg, "✅")
+
+		while True:
+			users = []
+			react = (await self.bot.wait_for_reaction(emoji="✅", user=ctx.message.author, message=msg)).reaction
+			await self.bot.remove_reaction(msg, "✅", ctx.message.author)
+			react.emoji = messageReaction[1]
+			users = await self.bot.get_reaction_users(react)
+			if ctx.message.author not in users:
+				users.append(ctx.message.author)
+
+			for user in users:
+				if user.bot:
+					users.remove(user)
+			if len(users) < 2:
+				await self.bot.say("You don't have enough players. You need at least 4 to play.")
+			elif len(users) > 10:
+				await self.bot.say("You have too many players. You have to have 10 or less.")
+			else:
+				usernames = list(map(lambda user: user.display_name.replace("`", ""), users))
+				checkMsg = await self.bot.say("```Players:\n"+"\n".join(usernames) + " ```Is this right?")
+				await self.bot.add_reaction(checkMsg, "❌")
+				await self.bot.add_reaction(checkMsg, "✅")
+				if (await self.bot.wait_for_reaction(emoji=["✅", "❌"], user=ctx.message.author, message=checkMsg)).reaction.emoji == "✅":
+					break
+				await self.bot.delete_message(checkMsg)
+
+		await self.bot.delete_message(msg)
+
+		await self.bot.say("Welcome players, to Cards Against Humanity. We're shuffling the deck and 10 white cards will shortly be DM'd to you!")
+
+		with open("gameData/cah.json") as fp:
+			deck = json.load(fp)
+			fp.close()
+
+		deck['whiteDiscard'] = []
+		deck['blackDiscard'] = []
+
+		shuffle(users)
+		czar = 0
+		for i in range(len(users)):
+			info = {}
+			info['user'] = users[i]
+			info['points'] = 0
+			info['cards'] = []
+			info['picked'] = []
+			for x in range(10):
+				card = choice(deck['whiteCards'])
+				deck['whiteCards'].remove(card)
+				info['cards'].append(card)
+
+			users[i] = info
+
+		numbers = ["1⃣", "2⃣", "3⃣", "4⃣", "5⃣", "6⃣", "7⃣", "8⃣", "9⃣", "🔟"]
+
+		await asyncio.sleep(1)
+
+		for info in users:
+			info['cardMsg'] = await self.bot.send_message(info['user'], "Here are your cards:\n{}".format("\n".join(list(map(lambda card: numbers[info['cards'].index(card)] + " `{}`".format(unescape(card)), info['cards'])))))
+
+		while True:
+			if len(deck['blackCards']) == 0:
+				deck['blackCards'] = deck['blackDiscard']
+				deck['blackDiscard'] = []
+			blackCard = choice(deck['blackCards'])
+			deck['blackDiscard'].append(blackCard)
+			deck['blackCards'].remove(blackCard)
+
+			users[czar]['picked'] = ["Card Czar"]
+			users[czar]['picked'].extend([""]*(blackCard['pick']-1))
+			await self.bot.say("{0}, you are the Card Czar this round! The black card is:\n\n```{1} Pick ({2})```\n".format(users[czar]['user'].mention, blackCard['text'], blackCard['pick']))
+
+			for info in users:
+				await self.bot.edit_message(info['cardMsg'], "The Black Card for this round is ```{0} Pick ({1})```\n\nHere are your cards:\n{2}".format(blackCard['text'], blackCard['pick'], "\n".join(list(map(lambda card: numbers[info['cards'].index(card)] + " `{}`".format(unescape(card)), info['cards'])))))
+
+			msg = await self.bot.say("While the voting sets up, have a look at your cards and decide what you want to play. Remember, no backsies!")
+
+			for emoji in numbers:
+				await self.bot.add_reaction(msg, emoji)
+
+			while True:
+				usersLeft = list(filter(lambda info: len(info['picked']) != blackCard['pick'], users))
+				text = "```\n{} player(s) left to submit:\n".format(len(usersLeft))
+
+				for info in list(filter(lambda info: len(info['picked']) != 0 and info['picked'][0] != "Card Czar", users)):
+					text += "\n" + " ".join(map(lambda index: str(index+1), info['picked'])) + " - " + info['user'].display_name
+
+				text += "\n\nIt might not see your guess, so make sure your name appears on the list.```"
+
+				await self.bot.edit_message(msg, text)
+
+				usersToPick = list(map(lambda info: info['user'], usersLeft))
+				def check(reaction, user):
+					return user in usersToPick and numbers.index(reaction.emoji) not in usersLeft[usersToPick.index(user)]['picked']
+				userReaction = await self.bot.wait_for_reaction(emoji=numbers, check = check, message=msg)
+
+				usersLeft[usersToPick.index(userReaction.user)]['picked'].append(numbers.index(userReaction.reaction.emoji))
+
+				if len(list(filter(lambda info: len(info['picked']) != blackCard['pick'], users))) == 0:
+					break
+
+			await self.bot.delete_message(msg)
+
+			answers = []
+			for info in users:
+				if info['picked'][0] != 'Card Czar':
+					answers.append(info)
+
+			shuffle(answers)
+
+			msg = await self.bot.say("Here are the white cards for the prompt:\n```{0}```\n{1}".format(
+			blackCard['text'],
+			"\n".join((numbers[i] + " " + " and ".join(list(map(lambda index: "`{}`".format(unescape(answers[i]['cards'][index])), answers[i]['picked'])))) for i in range(len(answers)))
+			))
+
+			msg = await self.bot.say("```Okay Card Czar, have a deep think about which one is the best. Or the most disgusting.```")
+
+			for i in range(len(answers)):
+				await self.bot.add_reaction(msg, numbers[i])
+
+			userReaction = await self.bot.wait_for_reaction(message=msg, emoji = numbers[:len(answers)], user = users[czar]['user'])
+
+			winner = numbers.index(userReaction.reaction.emoji)
+
+			await self.bot.say("You chose \n\n{0}\n\n which was played by {1}. Congrats on the point!".format(" and ".join(list(map(lambda index: "`{}`".format(unescape(answers[i]['cards'][index])), answers[i]['picked']))), answers[winner]['user'].display_name))
+
+			answers[winner]['points'] += 1
+
+			await self.bot.say("```\nScoreboard:\n{}```".format("\n".join(list(map(lambda info: info['user'].display_name + " - "+ str(info['points']), sorted(users, key = lambda info: info['points']))))))
+
+			if answers[winner]['points'] == 5:
+				await self.bot.say("We have a winner! Congratulations {}".format(answers[winner]['user'].display_name))
+				break
+			else:
+				await asyncio.sleep(1)
+				czar = (czar + 1)%len(users)
+
+				await self.bot.say("New round! Don't forget to check out your new card.")
+
+				for info in users:
+					if info['picked'][0] != "Card Czar":
+						for index in info['picked']:
+							deck['whiteDiscard'].append(info['cards'][index])
+							if len(deck['whiteCards']) == 0:
+								deck['whiteCards'] = deck['whiteDiscard']
+								deck['whiteDiscard'] = []
+							card = choice(deck['whiteCards'])
+							deck['whiteCards'].remove(card)
+							info['cards'][index] = card
+					info['picked'] = []
+
+	@commands.group(pass_context = True)
+	async def giveme(self, ctx):
+		'''giveme (<name>)|('remove' <name>))|('list')|('create' <name> <colour>)|('delete' <name>)
+- A custom role colour generator!
+- b.giveme 'role'
+	- Gives you that role (if it is a giveme type role, so no trying to give yourself mod roles)
+- b.giveme remove 'name'
+	- Removes the role 'name' from you
+- b.giveme list
+	- Shows you a list of roles available for give me
+- b.giveme create 'name' 'colour'
+	- Creates a role called 'name' and in that colour
+	- Needs manage_messages permission
+	- Colour can be in form:
+		- "red", "green", and other common colours
+		- rgb format with spaces in-between
+		- Hex format like #FF00FF
+- b.giveme edit 'name' 'colour'
+	- Changes the colour of a role'''
+
+		if ctx.invoked_subcommand is None:
+			name = ctx.message.clean_content[len(ctx.prefix+ctx.invoked_with):].strip().lower()
+
+			if 'giveme' not in self.bot.serverInfo[ctx.message.server.id] or not len(self.bot.serverInfo[ctx.message.server.id]['giveme']):
+				await self.bot.say("There are no giveme roles in your server. Ask a mod to create some using `b.giveme create <name> <colour>`")
+				return
+
+			if name in self.bot.serverInfo[ctx.message.server.id]['giveme']:
+				getRole = None
+				for role in ctx.message.server.roles:
+					if role.id == self.bot.serverInfo[ctx.message.server.id]['giveme'][name]['id']:
+						getRole = role
+
+				if getRole:
+					await self.bot.add_roles(ctx.message.author, getRole)
+					await self.bot.say("Added role!")
+					return
+				del self.bot.serverInfo[ctx.message.server.id]['giveme'][name]
+			await self.bot.say("There is no giveme role called `{}`.".format(secrets.clean(name)))
+
+	@giveme.command(pass_context = True)
+	async def create(self, ctx, name = None, *, col = None):
+		if not await checks.has_perms(self.bot, ctx.message, ["manage_roles"]):
+			return
+
+		if not name or not col:
+			await self.bot.say("Use format `b.create <name> <colour>`")
+			return
+
+		if 'giveme' not in self.bot.serverInfo[ctx.message.server.id]:
+			self.bot.serverInfo[ctx.message.server.id]['giveme'] = {}
+
+		if name.lower() in self.bot.serverInfo[ctx.message.server.id]['giveme']:
+			await self.bot.say("There is already a role of that name.")
+			return
+
+		hexFormat = re.compile("#?[0-9A-Fa-f]{6}")
+		rgbFormat = re.compile("\\d{1,3} \\d{1,3} \\d{1,3}")
+		if hexFormat.match(col) is not None:
+			if col[0] != "#":
+				col = "#" + col
+			col = colour.Color(col)
+		elif rgbFormat.match(col) is not None:
+			col = tuple(map(lambda x: int(x), col.split(" ")))
+			col = colour.Color(rgb=col)
+		else:
+			try:
+				col = colour.Color(col)
+			except:
+				await self.bot.say("`{}` is not a recognised colour".format(secrets.clean(col)))
+				return
+
+		newRole = await self.bot.create_role(server=ctx.message.server, name=name, permissions = discord.Permissions(), colour = discord.Colour(int(col.hex_l[1:],16)), hoist = False, mentionable = False)
+		await self.bot.say("Created role!")
+		self.bot.serverInfo[ctx.message.server.id]['giveme'][name.lower()] = {'id':newRole.id, 'name':name, 'colour':"%s"%col}
+		with open('serverInfo.json','w') as fp:
+			json.dump(self.bot.serverInfo, fp)
+
+	@giveme.command(pass_context = True)
+	async def edit(self, ctx, name = None, *, col = None):
+		if not await checks.has_perms(self.bot, ctx.message, ["manage_roles"]):
+			return
+
+		if not name or not col:
+			await self.bot.say("Use format `b.edit <name> <colour>`")
+			return
+		name = name.lower()
+		if 'giveme' not in self.bot.serverInfo[ctx.message.server.id]['giveme'] or len(self.bot.serverInfo[ctx.message.server.id]['giveme']) == 0:
+			await self.bot.say("There are no giveme roles in your server. Try using `b.giveme create <name> <colour>`")
+			return
+
+		getRole = None
+		for role in ctx.message.server.roles:
+			if role.id == self.bot.serverInfo[ctx.message.server.id]['giveme'][name]['id']:
+				getRole = role
+		if not getRole:
+			await self.bot.say("There is no giveme role called {} in your server.".format(name))
+
+		hexFormat = re.compile("#?[0-9A-Fa-f]{6}")
+		rgbFormat = re.compile("\\d{1,3} \\d{1,3} \\d{1,3}")
+		if hexFormat.match(col) is not None:
+			if col[0] != "#":
+				col = "#" + col
+			col = colour.Color(col)
+		elif rgbFormat.match(col) is not None:
+			col = col.split(" ")
+			col = tuple(map(lambda x: int(x), col))
+			col = colour.Color(rgb=col)
+		else:
+			try:
+				col = colour.Color(col)
+			except:
+				await self.bot.say("`{}` is not a recognised colour".format(col))
+				return
+
+		await self.bot.edit_role(server=ctx.message.server, role=getRole, colour = discord.Colour(int(col.hex_l[1:],16)))
+		await self.bot.say("Edited role!")
+		self.bot.serverInfo[ctx.message.server.id]['giveme'][name]['colour'] = "%s"%col
+		with open('serverInfo.json','w') as fp:
+			json.dump(self.bot.serverInfo, fp)
+
+
+	@giveme.command(name = "list", pass_context = True)
+	async def list(self, ctx):
+		lis = []
+
+		if 'giveme' in self.bot.serverInfo[ctx.message.server.id] in self.bot.serverInfo and self.bot.serverInfo[ctx.message.server.id]['giveme']:
+			for role in self.bot.serverInfo[ctx.message.server.id]['giveme']:
+				lis.append(self.bot.serverInfo[ctx.message.server.id]['giveme'][role]['name'] + "\n\t- " + self.bot.serverInfo[ctx.message.server.id]['giveme'][role]['colour'])
+			await self.bot.say("```\n{}```".format("\n".join(lis)))
+		else:
+			await self.bot.say("There are no roles available for `giveme`. Create one using `giveme create 'name' 'colour'`")
+
+
+	@giveme.command(pass_context = True)
+	async def remove(self, ctx, *, name):
+		name = name.lower()
+		if 'giveme' in self.bot.serverInfo[ctx.message.server.id] and name in self.bot.serverInfo[ctx.message.server.id]['giveme']:
+			getRole = None
+			for role in ctx.message.server.roles:
+				if role.id == self.bot.serverInfo[ctx.message.server.id]['giveme'][name]['id']:
+					getRole = role
+					del self.bot.serverInfo[ctx.message.server.id]['giveme'][name]
+			if getRole:
+				if getRole in ctx.message.author.roles:
+					await self.bot.remove_roles(ctx.message.author, getRole)
+					await self.bot.say("Role removed!")
+				else:
+					await self.bot.say("You don't have that role.")
+				return
+		await self.bot.say("There is no role by that name.")
+
+	@giveme.command(pass_context = True)
+	async def delete(self, ctx, *, name):
+		if not await checks.has_perms(self.bot, ctx.message, ["manage_roles"]):
+			return
+
+		if 'giveme' in self.bot.serverInfo[ctx.message.server.id] and name in self.bot.serverInfo[ctx.message.server.id]['giveme']:
+			getRole = None
+			for role in ctx.message.server.roles:
+				if role.id == self.bot.serverInfo[ctx.message.server.id]['giveme'][name]['id']:
+					getRole = role
+					del self.bot.serverInfo[ctx.message.server.id]['giveme'][name]
+			if getRole:
+				await self.bot.delete_role(ctx.message.server, getRole)
+			await self.bot.say("Role deleted!")
+		else:
+			await self.bot.say("There is no role by that name.")
+
+
 	#Translate
 	@commands.group(pass_context = True)
 	async def translate(self, ctx, *, message = None):
+		return
 		'''translate [to <language>] Phrase
 - Dumb google api'''
 		return
@@ -119,6 +569,7 @@ class Development():
 
 	@translate.command(name = "to", pass_context = True)
 	async def translateto(self,ctx,*message):
+		return
 		tolanguage = message[0]
 		if len(message) == 1:
 			phrase = self.bot.wait_for_message(author=ctx.message.author, channel = ctx.message.channel)
@@ -145,10 +596,10 @@ class Development():
 	#Mod
 	@commands.command(pass_context = True)
 	async def timeout(self, ctx, user:discord.User):
+		return
 		'''timeout <user>
 - Strips a user of his roles and sends him to timeout until a moderator either bans him or restores him
 - Not working'''
-		return
 		userRoles = user.roles
 
 		emptyperms = discord.permissions.none()
@@ -237,7 +688,7 @@ class Development():
 				collapse(cyclic, pairs, int(choose), player + str(turn))
 				await self.bot.say("```" + printBoard(pairs) + "```")
 				winList = checkttt(pairs)
-				print(winList)
+				#print(winList)
 				if len(winList) != 0:
 					await self.bot.say("We have a winner!")
 
@@ -364,7 +815,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 	##Suggest
 	##Adds suggestions to a list
 	@commands.command(pass_context = True)
-	async def suggest(self, ctx, *suggestion):
+	async def suggest(self, ctx, *, suggestion):
 		addSug(ctx,suggestion)
 		await self.bot.say('Suggestion Received!')
 
@@ -396,44 +847,225 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 		while True:
 			return "..."
 
+
+	#Fun
+	#Blend
+	#Blend two profile pics
+	@commands.command(pass_context=True, aliases = ["blend"])
+	async def lend(self, ctx, user2:discord.User, user:discord.User = None):
+		'''b.lend <user> [<user>]
+- Blends your profile pic and another's
+- If two users are specified, blend their's'''
+		if not user:
+			user = ctx.message.author
+
+		link = user.avatar_url
+		if not link:
+			link = user.default_avatar_url
+
+		response = requests.get(link)
+		im = Image.open(BytesIO(response.content))
+
+		link = user2.avatar_url
+		if not link:
+			link = user2.default_avatar_url
+
+		response = requests.get(link)
+		im2 = Image.open(BytesIO(response.content))
+
+		im = Image.blend(im, im2, 0.5)
+
+		im.save("TempFiles/{}.png".format(ctx.message.id))
+		await self.bot.send_file(ctx.message.channel, "TempFiles/{}.png".format(ctx.message.id))
+		os.remove("TempFiles/{}.png".format(ctx.message.id))
+
+	#Fun
+	#Invert
+	#Invert a profile pic or an image
+	@commands.command(pass_context=True)
+	async def invert(self, ctx, user:discord.User = None):
+		'''invert [<user>]
+- Inverts your own or someone else's profile pic '''
+		if not user:
+			user = ctx.message.author
+
+		link = user.avatar_url
+		if not link:
+			link = user.default_avatar_url
+
+		response = requests.get(link)
+		im = Image.open(BytesIO(response.content))
+
+		im = ImageOps.invert(im)
+
+		im.save("TempFiles/{}.png".format(ctx.message.id))
+		await self.bot.send_file(ctx.message.channel, "TempFiles/{}.png".format(ctx.message.id))
+		os.remove("TempFiles/{}.png".format(ctx.message.id))
+
+
+	#Fun
+	#Trigger
+	#
+	@commands.command(pass_context=True, aliases = ["triggered"])
+	async def trigger(self, ctx, user:discord.User = None):
+		'''trigger [<user>]
+- *triggered* '''
+		if not user:
+			user = ctx.message.author
+
+		link = user.avatar_url
+		if not link:
+			link = user.default_avatar_url
+
+		await self.bot.send_typing(ctx.message.channel)
+
+		fnt = ImageFont.truetype("impact.ttf", size = 40)
+		response = requests.get(link)
+		im = Image.open(BytesIO(response.content)).resize((230,230))
+		im = ImageOps.crop(im, 15)
+		redImage = Image.new('RGB', (200, 200), (100,0,0))
+		d = ImageDraw.Draw(redImage)
+		d.multiline_text((5,140), "TRIGGERED", fill = (255,20,30,0), font = fnt, align = "center")
+		redImage = redImage.filter(ImageFilter.BLUR)
+		frames = []
+		for i in range(7):
+			frames.append(ImageChops.offset(im, (math.floor(random()*2)*2-1)*math.floor(random()*20), (math.floor(random()*2)*2-1)*math.floor(random()*20)))
+			frames[-1] = Image.blend(frames[-1], ImageChops.offset(redImage, math.ceil(random()*20),math.ceil(random()*20)), 0.5)
+			await asyncio.sleep(0)
+
+		frames[0].save("TempFiles/{}.gif".format(ctx.message.id), save_all=True, append_images = frames[1:], loop = 8)
+		await self.bot.send_file(ctx.message.channel, "TempFiles/{}.gif".format(ctx.message.id))
+		os.remove("TempFiles/{}.gif".format(ctx.message.id))
+
+	#Fun
+	#Static
+	#Equalises a profile pic or an image
+	@commands.command(pass_context=True, alias = ["equalize","equalise"])
+	async def static(self, ctx, user:discord.User = None):
+		'''static [<user>]
+- Makes a profile pic look kinda static-y
+- Works better with multi-coloured profile pictures'''
+		if not user:
+			user = ctx.message.author
+
+		link = user.avatar_url
+		if not link:
+			link = user.default_avatar_url
+
+		response = requests.get(link)
+		im = Image.open(BytesIO(response.content))
+
+		im = ImageOps.equalize(im)
+
+		im.save("TempFiles/{}.png".format(ctx.message.id))
+		await self.bot.send_file(ctx.message.channel, "TempFiles/{}.png".format(ctx.message.id))
+		os.remove("TempFiles/{}.png".format(ctx.message.id))
+
+	#Fun
+	#deform
+	#Deforms a profile pic or an image
+	@commands.command(pass_context=True)
+	async def deform(self, ctx, user:discord.User = None):
+		return
+		'''deform [<user>]
+- Deforms your own or someone else's profile pic '''
+		if not user:
+			user = ctx.message.author
+
+		link = user.avatar_url
+		if not link:
+			link = user.default_avatar_url
+
+		response = requests.get(link)
+		im = Image.open(BytesIO(response.content))
+
+		class Deformer(object):
+			def getmesh(self, im):
+				x, y = im.size
+
+				lis = [((0,0,x,y),(0,0,0,y,x,y,x,0))]
+
+				for i in range(1):
+					x1 = math.floor(random()*x)
+					y1 = math.floor(random()*y)
+					dx = math.floor(random()*x)
+					dy = math.floor(random()*y)
+					lis.append(((x1,y1,x1+dx,y1+dy), (x1, y1, x1+dx, y1, x1+dx, y1+dy, x1, y1+dy)))
+
+
+				return lis
+
+		deformer = Deformer()
+		im = ImageOps.deform(im, deformer, 2)
+
+		im.save("test.png")
+		await self.bot.send_file(ctx.message.channel, "test.png")
+
+
 	##Game
 	##Pong
 	##Play a classic game of pong
-	@commands.command()
-	async def pong(self):
+	@commands.command(pass_context=True)
+	async def pong(self, ctx):
+		size = (300, 200)
+
+		positions = (0.5,0.5)
+		ball = {"x":0.5, "y":0.5, "dy":-math.pi/2}
+
+		playing = True
+
+		while playing:
+			im = Image.new('1', size)
+
+			draw = ImageDraw.Draw(im)
+			draw.rectangle([0, 0, size[0], 10], 1, 1)
+			draw.rectangle([0, size[1], size[0], size[1]-10], 1, 1)
+
+			im.save("test.png")
+			await self.bot.send_file(ctx.message.channel, "test.png")
+			playing = False
+
 		return
 		##Make game somehow
 		##Maybe up and down to move paddle "u" and "d"
 		##maybe add difficulty
 		##delete message too
 		##draw it instead?
-		score = [0,0]
-		pos = 3
-		enemyPos = 3
-		boardHeight = 5
-		boardWidth = 20
-		while score[0] < 7 and score[1] < 7:
-			score[0] += 7
-			board = "\\_"*boardWidth + "\n"
-			for i in range(0,boardHeight):
-				if i == pos:
-					board += "|"+(boardWidth-1)*" "
-				else:
-					board += " "+(boardWidth-1)*" "
-				if i == enemyPos:
-					board += "|\n"
-				else:
-					board += " \n"
-			board += "\\_"*boardWidth
 
-			msg = await bot.send_message(message.channel, board)
+
+
+
+	async def getBattleshipBoard(self, user):
+		board1 = [["NONE" for y in range(8)] for x in range(8)]
+		shipDict = {'A':4,'B':5,'S':2,'C':3,'D':3}
+		shipList = ['A', 'B', 'C', 'D', 'S']
+
+		embed = discord.Embed()
+
+		msg = await bot.send_message()
+
+
+		while len(shipList):
+			await self.bot.send_message(user, )
 
 	@commands.command(pass_context = True, aliases=["ship"])
-	async def attleship(self, ctx):
-		'''b.attleship
-- Plays a classic game of Battleship
-- Warning, this game requires reactions'''
+	async def attleship(self, ctx, user:discord.User = None):
 		return
+		'''b.attleship [<user>]
+- Plays a classic game of Battleship'''
+
+		if user:
+			await self.bot.say("Waiting for Player 1 ({}) to set their board...".format(ctx.message.author.name))
+			board1 = await getBattleshipBoard(self, ctx.message.author)
+			board2 = await getBattleshipBoard(self, user)
+		else:
+			board1 = await getBattleshipBoard(self, ctx.message.author)
+			board2 = randomBoard()
+		return
+
+
+
+
 		board = battleShipBoard()
 
 		msg = await self.bot.say("Setting Up Game!")
@@ -462,7 +1094,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 			selected = False
 			placed = False
 			while placing:
-				print(ship)
+				#print(ship)
 
 				printField = copy.deepcopy(board.board)
 				printField[coord[0]][coord[1]] = ship if printField[coord[0]][coord[1]] == "N" else "cross"
@@ -477,7 +1109,7 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 
 				if reaction == emojiDict["up"]:
 					if selected:
-						print(ship)
+						#print(ship)
 						test = board.placeShip(ship, coord, "N")
 						if test:
 							embed.add_field(name = test, value = "")
@@ -656,44 +1288,8 @@ Here, 2-4 players will attempt to defuse all the bomb using the power of coopera
 		await self.bot.edit_message(msg, new_content = " ", embed = embed)
 		await self.bot.clear_reactions(msg)
 
-	@commands.command()
-	async def xkcd(self, num = None):
-		'''xkcd (<number>)
-- Gets a random xkcd comic
-- If a number is given, that comic is shown'''
-		msg = await self.bot.say("Getting xkcd comic!")
-		async with aiohttp.get('http://xkcd.com/info.0.json') as r:
-			if r.status == 200:
-				js = await r.json()
-				max = js['num']
-			else:
-				await self.bot.edit_message(msg, new_content="Error while getting comic.")
 
-		if not num:
-			xkcd = math.ceil(random()*max)
-		elif num.isnumeric():
-			xkcd = int(num)
-			if xkcd > max:
-				await self.bot.edit_message(msg, "Error: Comic not found")
-				return
-		else:
-			await self.bot.edit_message(msg, "Error: Not a number. (Relevant xkcd maybe coming soon)")
-			return
-
-		async with aiohttp.get('https://xkcd.com/{0}/info.0.json'.format(xkcd)) as r:
-			if r.status == 200:
-				js = await r.json()
-				embed = discord.Embed(colour=discord.Colour.gold(), title = js['safe_title'] + " #"+str(xkcd), url = js['img'])
-				embed.set_image(url = js['img'])
-				embed.add_field(name = 'Date', value = "/".join([js['day'],js['month'],js['year']]), inline = False)
-				embed.add_field(name = 'Explanation', value = "http://www.explainxkcd.com/wiki/index.php/" + str(xkcd), inline = False)
-				#embed.add_field(name = 'Alt-Text', value = js['alt'])
-				embed.set_footer(text = js['alt'])
-				await self.bot.edit_message(msg, new_content=" ",embed = embed)
-			else:
-				await self.bot.edit_message(msg, new_content="Error while getting comic.")
-
-	@commands.command(pass_context = True, aliases = ['slot', 'spin', 'et'])
+	@commands.command(pass_context = True, aliases = ['slot', 'spin', 'et', 'bet'])
 	async def slots(self, ctx, bet = "wrong"):
 		'''slots <bet>
 - Plays a game of slots
@@ -856,24 +1452,9 @@ I'll lend you a few b.ucks ;)'''
 		with open('money.json','w') as fp:
 			json.dump(self.bot.money, fp)
 
-	@commands.command(pass_context = True, aliases = ["ucks","alance","🏦"])
-	async def ank(self, ctx, user:discord.User = None):
-		'''b.ank (<user>)
-Checks how many b.ucks you or someone else has'''
-		if not user:
-			user = ctx.message.author
-			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
-				await self.bot.say(str(user) + " has zero b.ucks :( B.orrow some from me?")
-			else:
-				await self.bot.say(str(user) + " has " + str(self.bot.money[ctx.message.author.id]) + " b.ucks!")
-		else:
-			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
-				await self.bot.say("You have zero b.ucks :( You can b.orrow some from me.")
-			else:
-				await self.bot.say(str(user) + " has " + str(self.bot.money[user.id]) + " b.ucks!")
-
 	@commands.command(pass_context = True, aliases = ["go"])
 	async def aduk(self, ctx, challenger:discord.Member = None):
+		return
 		'''go
 - Plays a game of Go'''
 		if not challenger:
@@ -1017,39 +1598,6 @@ Checks how many b.ucks you or someone else has'''
 			embed.add_field(name = "Game Canceled.", value = "​")
 
 		await self.bot.edit_message(msg, new_content = None, embed = embed)
-
-
-	##Search
-	##REMEMBER: Find out why some search terms fail consistently ???games??? why???
-	@commands.command()
-	async def image(self, *, term):
-		'''image <term>
-- Searches Google images for your search term'''
-		service = build("customsearch", "v1",
-			developerKey = secrets.googleAPIkey)
-
-		#Searches for the term using the google API
-		res = service.cse().list(
-			q=term,
-			cx='018014882124522379482:xpnc40-ziuq',
-			searchType = "image",
-			safe = "high"
-			).execute()
-
-		await self.bot.say(res['items'][0]['link'])
-		return
-
-		#Creates an embed with the title as a link to the website, and a description underneath from the API
-		embed = discord.Embed(title=res['items'][0]['title'],
-					  url = res['items'][0]['formattedUrl'],
-					  description = res['items'][0]['snippet'].replace("\n"," "))
-		#Give 2 extra links in case the first wasn't the right one
-		embed.add_field(name="See Also:", value = res['items'][1]['formattedUrl'] + "\n" + res['items'][2]['formattedUrl'])
-
-		await self.bot.say(embed=embed)
-
-
-
 
 
 
