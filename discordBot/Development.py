@@ -355,11 +355,11 @@ class Development():
 
 			winner = numbers.index(userReaction.reaction.emoji)
 
-			await self.bot.say("You chose \n\n{0}\n\n which was played by {1}. Congrats on the point!".format(" and ".join(list(map(lambda index: "`{}`".format(unescape(answers[i]['cards'][index])), answers[i]['picked']))), answers[winner]['user'].display_name))
+			await self.bot.say("You chose \n\n{0}\n\n which was played by {1}. Congrats on the point!".format(" and ".join(list(map(lambda index: "`{}`".format(unescape(answers[winner]['cards'][index])), answers[winner]['picked']))), answers[winner]['user'].display_name))
 
 			answers[winner]['points'] += 1
 
-			await self.bot.say("```\nScoreboard:\n{}```".format("\n".join(list(map(lambda info: info['user'].display_name + " - "+ str(info['points']), sorted(users, key = lambda info: info['points']))))))
+			await self.bot.say("```\nScoreboard:\n{}```".format("\n".join(list(map(lambda info: info['user'].display_name + " - "+ str(info['points']), sorted(users, key = lambda info: info['points'], reverse=True))))))
 
 			if answers[winner]['points'] == 5:
 				await self.bot.say("We have a winner! Congratulations {}".format(answers[winner]['user'].display_name))
