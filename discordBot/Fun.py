@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-import random
+from random import randint, choice
 import secrets
 import checks
 
@@ -11,34 +11,37 @@ import json
 import aiohttp
 import math
 
+from urllib.parse import quote
+
 class Fun():
 	def __init__(self, bot):
 		self.bot = bot
 
 
 	@commands.command()
-	async def xkcd(self, num = None):
+	async def xkcd(self, ctx, num = None):
 		'''xkcd [<number>]
 - Gets a random xkcd comic
 - If a number is given, that comic is shown'''
-		msg = await self.bot.say("Getting xkcd comic!")
+		msg = await ctx.send("Getting xkcd comic!")
 		async with aiohttp.get('http://xkcd.com/info.0.json') as r:
 			if r.status == 200:
 				js = await r.json()
-				max = js['num']
+				total = js['num']
 			else:
-				await self.bot.edit_message(msg, new_content="Error while getting comic.")
+				await msg.edit(content="Error while getting comic.")
 
 		if not num:
-			xkcd = math.ceil(random()*max)
-		elif num.isnumeric():
-			xkcd = int(num)
-			if xkcd > max:
-				await self.bot.edit_message(msg, "Error: Comic not found")
-				return
+			xkcd = randint(1,total)
 		else:
-			await self.bot.edit_message(msg, "Error: Not a number. (Relevant xkcd maybe coming soon)")
-			return
+			try:
+				xkcd = int(num)
+				if xkcd > total:
+					await msg.edit(content = "Error: Comic not found")
+					return
+			except:
+				await msg.edit(content = "Error: Not a number.")
+				return
 
 		async with aiohttp.get('https://xkcd.com/{0}/info.0.json'.format(xkcd)) as r:
 			if r.status == 200:
@@ -49,117 +52,117 @@ class Fun():
 				embed.add_field(name = 'Explanation', value = "http://www.explainxkcd.com/wiki/index.php/" + str(xkcd), inline = False)
 				#embed.add_field(name = 'Alt-Text', value = js['alt'])
 				embed.set_footer(text = js['alt'])
-				await self.bot.edit_message(msg, new_content=" ",embed = embed)
+				await msg.edit(content=" ", embed = embed)
 			else:
-				await self.bot.edit_message(msg, new_content="Error while getting comic.")
+				await msg.edit(content="Error while getting comic.")
 
-	@commands.command(pass_context = True, aliases = ["ucks","alance","🏦"])
+	@commands.command(aliases = ["ucks","alance","🏦"])
 	async def ank(self, ctx, user:discord.User = None):
 		'''b.ank [<user>]
 Checks how many b.ucks you or someone else has'''
-		if not user:
+		if user:
+			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
+				await ctx.send("`{}` has zero b.ucks :( Maybe they can b.orrow some from me?".format(secrets.clean(str(user))))
+			else:
+				await ctx.send("`{0}` has `{1}` b.ucks!".format(str(user), str(self.bot.money[ctx.message.author.id])))
+		else:
 			user = ctx.message.author
 			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
-				await self.bot.say(str(user) + " has zero b.ucks :( B.orrow some from me?")
+				await ctx.send("You have zero b.ucks :( You can b.orrow some from me.")
 			else:
-				await self.bot.say(str(user) + " has " + str(self.bot.money[ctx.message.author.id]) + " b.ucks!")
-		else:
-			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
-				await self.bot.say("You have zero b.ucks :( You can b.orrow some from me.")
-			else:
-				await self.bot.say(str(user) + " has " + str(self.bot.money[user.id]) + " b.ucks!")
+				await ctx.send("You have `{}` b.ucks!".format(str(self.bot.money[ctx.message.author.id])))
 
 	#Slap
-	@commands.command(pass_context = True)
+	@commands.command()
 	async def slap(self, ctx, user:discord.User=None):
 		'''slap <user>
 - Slaps a user'''
 		if user == None:
-			await self.bot.say("Specify a user to slap!")
+			await ctx.send("Specify a user to slap!")
 			return
 		#:P
-		if checks.is_owner(user) or user == self.bot.user:
+		if user.id == secrets.owner or user == self.bot.user:
 			user = ctx.message.author
-		await self.bot.say(":wave::weary::sparkles: " + user.mention)
+		await ctx.send(":wave::weary::sparkles: " + user.mention)
 
 	#vote
-	@commands.command(pass_context = True)
+	@commands.command()
 	async def vote(self, ctx, user:discord.User = None):
 		'''vote [<user>]
 - Puts \U0001F44Ds and \U0001F44Es on the previous message, or on the last message by the specified user, allowing people to vote on it'''
-		async for message in self.bot.logs_from(ctx.message.channel, limit=100, before=ctx.message):
+		async for message in ctx.message.channel.history(limit=100, before=ctx.message):
 			if user==None or user == message.author:
-				await self.bot.add_reaction(message, "\U0001F44D")
-				await self.bot.add_reaction(message, "\U0001F44E")
+				await message.add_reaction("\U0001F44D")
+				await message.add_reaction("\U0001F44E")
 				return
 
 	##LIKE
 	##Thumbs up
-	@commands.command(pass_context = True)
-	async def like(self, ctx, user:discord.User=None):
+	@commands.command()
+	async def like(self, ctx, user:discord.User = None):
 		'''like [<user>]
 - \U0001F44Ds the previous message (or the last message by a specified user)'''
-		async for message in self.bot.logs_from(ctx.message.channel, limit=100, before=ctx.message):
+		async for message in ctx.message.channel.history(limit=100, before=ctx.message):
 			if user==None or user == message.author:
-				await self.bot.add_reaction(message, "\U0001F44D")
+				await message.add_reaction("\U0001F44D")
 				return
 	##DISLIKE
 	##Thumbs up
-	@commands.command(pass_context = True, aliases = ['hate'])
+	@commands.command(aliases = ['hate'])
 	async def dislike(self, ctx, user:discord.User = None):
 		'''dislike [<user>]
 - \U0001F44Es the previous message (or the last message by a specified user)'''
-		async for message in self.bot.logs_from(ctx.message.channel, limit=100, before=ctx.message):
+		async for message in ctx.message.channel.history(limit=100, before=ctx.message):
 			if user==None or user == message.author:
-				await self.bot.add_reaction(message, "\U0001F44E")
+				await message.add_reaction("\U0001F44E")
 				return
 	##Yes
 	##No
-	@commands.command(pass_context = True)
+	@commands.command(aliases = ["sure", "ok", "okay"])
 	async def yes(self, ctx):
 		'''yes
 - No'''
-		await self.bot.say("No")
-		await self.bot.delete_message(ctx.message)
+		await ctx.message.delete()
+		await ctx.send("No")
 
 	##No
 	##Yes
-	@commands.command(pass_context = True)
+	@commands.command(aliases = ["nah", "nope"])
 	async def no(self, ctx):
 		'''no
 - Yes'''
-		await self.bot.say("Yes")
-		await self.bot.delete_message(ctx.message)
+		await ctx.message.delete()
+		await ctx.send("Yes")
 
 	##Say
-	@commands.command(pass_context = True, )
-	async def say(self, ctx, phrase):
+	@commands.command()
+	async def say(self, ctx, *, phrase):
 		'''say <phrase>
 - Repeats your message'''
-		await self.bot.say(":speech_balloon: `" + secrets.clean(phrase) + "`")
+		await ctx.send(":speech_balloon: `{}`".format(secrets.clean(phrase)))
 
 	##Reverse
-	@commands.command(aliases = ['esrever'], pass_context = True)
+	@commands.command(aliases = ['esrever'])
 	async def reverse(self, ctx, *, msg):
 		'''reverse <message>
 - Reverses your message'''
-		await self.bot.say(":arrows_counterclockwise: `" + ctx.message.clean_content[ctx.message.clean_content.index(" ")+1:][::-1] + "`")
+		await ctx.send(":arrows_counterclockwise: `{}`".format(secrets.clean(msg[::-1])))
 
 	#Urban
 	@commands.command()
-	async def urban(self, *search):
+	async def urban(self, ctx, *, term):
 		'''urban <term>
 - Defines a term using Urban Dictionary'''
-		msg = await self.bot.say("Getting definition...")
-		response = requests.get("https://mashape-community-urban-dictionary.p.mashape.com/define?term=" + "%20".join(search),
+		msg = await ctx.send("Getting definition...")
+		response = requests.get("https://mashape-community-urban-dictionary.p.mashape.com/define?term=" + quote(term),
 			headers={
 				"X-Mashape-Key": secrets.mashapeKey,
 				"Accept": "text/plain"})
 		js = json.loads(response.text)
 		if len(js['list']) == 0:
-			await self.bot.edit_message(msg, "No entries found for `" + " ".join(search) + "`")
+			await msg.edit(content = "No entries found for `{}".format(term))
 			return
-		entry = random.choice(js['list'])
+		entry = choice(js['list'])
 
 		embed = discord.Embed(title = entry['word'], url = entry['permalink'], description = entry['definition'], author = entry['author'])
 		embed.add_field(name="Example:", value=entry['example'], inline = False)
@@ -167,7 +170,7 @@ Checks how many b.ucks you or someone else has'''
 		embed.add_field(name=str(entry['thumbs_up'])+"\U0001F44D", value=secrets.invisibleSpace)
 		embed.add_field(name=str(entry['thumbs_down'])+"\U0001F44E", value=secrets.invisibleSpace)
 
-		await self.bot.edit_message(msg,new_content=" ",embed=embed)
+		await msg.edit(content=None, embed=embed)
 
 
 def setup(bot):

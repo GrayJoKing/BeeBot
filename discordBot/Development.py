@@ -32,7 +32,9 @@ import colour
 import os
 
 #cah
-from html import unescape
+from html import ht2
+from html2text import html2text as h2t
+
 
 ##Translate
 #from google.cloud import translate
@@ -151,7 +153,7 @@ class Development():
 			return
 
 		self.bot.serverInfo['welcome'] = message
-		await self.bot.say("Welome message edited!")
+		await self.bot.say("Welcome message edited!")
 
 		with open('serverInfo.json','w') as fp:
 			json.dump(self.bot.serverInfo, fp)
@@ -245,7 +247,7 @@ class Development():
 			for user in users:
 				if user.bot:
 					users.remove(user)
-			if len(users) < 2:
+			if len(users) < 4:
 				await self.bot.say("You don't have enough players. You need at least 4 to play.")
 			elif len(users) > 10:
 				await self.bot.say("You have too many players. You have to have 10 or less.")
@@ -289,7 +291,7 @@ class Development():
 		await asyncio.sleep(1)
 
 		for info in users:
-			info['cardMsg'] = await self.bot.send_message(info['user'], "Here are your cards:\n{}".format("\n".join(list(map(lambda card: numbers[info['cards'].index(card)] + " `{}`".format(unescape(card)), info['cards'])))))
+			info['cardMsg'] = await self.bot.send_message(info['user'], "Here are your cards:\n{}".format("\n".join(list(map(lambda card: numbers[info['cards'].index(card)] + " `{}`".format(ht2(card)), info['cards'])))))
 
 		while True:
 			if len(deck['blackCards']) == 0:
@@ -304,7 +306,7 @@ class Development():
 			await self.bot.say("{0}, you are the Card Czar this round! The black card is:\n\n```{1} Pick ({2})```\n".format(users[czar]['user'].mention, blackCard['text'], blackCard['pick']))
 
 			for info in users:
-				await self.bot.edit_message(info['cardMsg'], "The Black Card for this round is ```{0} Pick ({1})```\n\nHere are your cards:\n{2}".format(blackCard['text'], blackCard['pick'], "\n".join(list(map(lambda card: numbers[info['cards'].index(card)] + " `{}`".format(unescape(card)), info['cards'])))))
+				await self.bot.edit_message(info['cardMsg'], "The Black Card for this round is ```{0} Pick ({1})```\n\nHere are your cards:\n{2}".format(blackCard['text'], blackCard['pick'], "\n".join(list(map(lambda card: numbers[info['cards'].index(card)] + " `{}`".format(ht2(card)), info['cards'])))))
 
 			msg = await self.bot.say("While the voting sets up, have a look at your cards and decide what you want to play. Remember, no backsies!")
 
@@ -343,7 +345,7 @@ class Development():
 
 			msg = await self.bot.say("Here are the white cards for the prompt:\n```{0}```\n{1}".format(
 			blackCard['text'],
-			"\n".join((numbers[i] + " " + " and ".join(list(map(lambda index: "`{}`".format(unescape(answers[i]['cards'][index])), answers[i]['picked'])))) for i in range(len(answers)))
+			"\n".join((numbers[i] + " " + " and ".join(list(map(lambda index: "`{}`".format(ht2(answers[i]['cards'][index])), answers[i]['picked'])))) for i in range(len(answers)))
 			))
 
 			msg = await self.bot.say("```Okay Card Czar, have a deep think about which one is the best. Or the most disgusting.```")
@@ -355,7 +357,7 @@ class Development():
 
 			winner = numbers.index(userReaction.reaction.emoji)
 
-			await self.bot.say("You chose \n\n{0}\n\n which was played by {1}. Congrats on the point!".format(" and ".join(list(map(lambda index: "`{}`".format(unescape(answers[winner]['cards'][index])), answers[winner]['picked']))), answers[winner]['user'].display_name))
+			await self.bot.say("You chose \n\n{0}\n\n which was played by {1}. Congrats on the point!".format(" and ".join(list(map(lambda index: "`{}`".format(ht2(answers[winner]['cards'][index])), answers[winner]['picked']))), answers[winner]['user'].display_name))
 
 			answers[winner]['points'] += 1
 

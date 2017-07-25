@@ -35,8 +35,17 @@ import json
 #Install packages with "python -m pip install"
 #	install - pillow, colour
 
+#Rewrite regex
+
+#	self\.bot\.edit_message\((.+?)\,\s?new_content
+#	$1.edit(content
+
+#	self\.bot\.say
+#	ctx.send
+
 #RandomCog is used as in place of random to avoid conflicts
-extensions = ["Basic","Randomcog","Mod","Fun","Games","Development", "Programming","Secret_stuff"]
+#extensions = ["Basic","Randomcog","Mod","Fun","Games", "Programming", "Development", "Secret_stuff"]
+extensions = ["Basic", "Randomcog", "Mod", "Fun", "Games", "Secret_stuff"]
 
 #A debug mode for testing out new features or improving old ones
 
@@ -51,7 +60,7 @@ startTime = time.time()
 
 while True:
 	try:
-		bot = commands.Bot(command_prefix=beePrefixes)
+		bot = commands.Bot(game = discord.Game(name=beePrefixes[0] + "cmds"), command_prefix=beePrefixes, owner_id=secrets.owner)
 		#Removes the default help command so you can put your own
 		bot.remove_command('help')
 
@@ -64,7 +73,7 @@ while True:
 				class SafeDict(dict):
 					def __missing__(self, key):
 						return '{' + key + '}'
-				await bot.send_message(member.server, bot.serverInfo['welcome'].format_map(SafeDict(mention=member.mention, name=member.name, servername=member.server.name)))
+				await member.guild.default_channel.send(bot.serverInfo['welcome'].format_map(SafeDict(mention=member.mention, name=member.name, servername=member.server.name)))
 			##assign role later
 
 		##On member leave
@@ -75,7 +84,7 @@ while True:
 				class SafeDict(dict):
 					def __missing__(self, key):
 						return '{' + key + '}'
-				await bot.send_message(member.server, bot.serverInfo['bye'].format_map(SafeDict(name=member.name, servername=member.server.name)))
+				await member.guild.default_channel.send(bot.serverInfo['bye'].format_map(SafeDict(name=member.name, servername=member.server.name)))
 
 		##On bot startup
 		##Print stuff to cmd line and changes Playing to the command list command
@@ -84,10 +93,8 @@ while True:
 			print('Logged in as {}'.format(bot.user.name))
 			#Sets the startTimeof the bot (for b.uptime)
 			bot.startTime = startTime
-			await bot.change_presence(game=discord.Game(name=(bot.command_prefix[0] + "cmds")))
-			print("Set Game as {}cmds".format(bot.command_prefix[0]))
 			try:
-				await bot.edit_profile(None, avatar=open("profilePics\\" + random.choice(os.listdir("profilePics\\")), 'rb').read())
+				await bot.user.edit(avatar=open("profilePics\\" + random.choice(os.listdir("profilePics\\")), 'rb').read())
 				print("Set random profile pic")
 			except Exception as e:
 				print("FAILED: Profile Pic\n" + str(e))
@@ -102,18 +109,6 @@ while True:
 
 			if debug:
 				print(message.content)
-
-			if message.type == discord.MessageType.pins_add:
-				pins = await bot.pins_from(message.channel)
-				message = pins[0]
-				if len(message.clean_content) < 200:
-					abridge = message.clean_content
-				else:
-					abridge = message.clean_content[:200] + "**...**"
-				embed = discord.Embed(title = str(message.author) + "'s pinned message.")
-				embed.add_field(name = str(message.timestamp[:-7]), value = abridge)
-				await bot.send_message(message.channel, embed = embed)
-				#await bot.send_message(message.channel, "A message was pinned to this channel. It was by " + str(message.author) + " and said:\n\n" + abridge)
 
 			#Isn't triggered by other bots or itself
 			if message.author.bot:
@@ -133,7 +128,7 @@ while True:
 
 		#Is called when a command encounters an error
 		@bot.event
-		async def on_command_error(exception, ctx):
+		async def on_command_error(ctx, exception):
 			if type(exception) == commands.CommandOnCooldown:
 				tim = exception.retry_after
 				allTime = []
@@ -153,23 +148,23 @@ while True:
 					allTime.append("`" + str(minutes) + "` minutes")
 				if not seconds:
 					allTime.append("`" + str(seconds) + "` seconds")
-				await bot.send_message(ctx.message.channel, 'That command is on cooldown. Try again in {}'.format(", ".join(allTime)))
+				await ctx.send('That command is on cooldown. Try again in {}'.format(", ".join(allTime)))
 			elif type(exception) != commands.CommandNotFound:
-				await bot.send_message(ctx.message.channel, "Error: " + str(exception))
+				await ctx.send("Error: " + str(exception))
 				print(str(exception))
 				traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
 		@bot.event
-		async def on_server_join(server):
+		async def on_member_join(member):
 			if not debug:
-				await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was added to the server `{0}`, with `{1}` members. Yay!".format(server.name, server.member_count-1))
-			if server.id not in bot.serverInfo:
-				bot.serverInfo[server.id] = {}
+				await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was added to the server `{0}`, with `{1}` members. Yay!".format(member.server.name, member.server.member_count-1))
+			if member.server.id not in bot.serverInfo:
+				bot.serverInfo[member.server.id] = {}
 
 		@bot.event
-		async def on_server_remove(server):
+		async def on_member_remove(member):
 			if not debug:
-				await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was removed from `{0}` or the server was deleted.".format(server.name))
+				await bot.get_channel(secrets.newsChannelID).send(":bee: was removed from `{0}` or the server was deleted.".format(member.server.name))
 
 
 		#Loads all the extensions
