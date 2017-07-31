@@ -2,14 +2,12 @@ import discord
 from discord.ext import commands
 from random import randint, choice
 import secrets
-import checks
 
 import requests
 
 #xkcd
 import json
 import aiohttp
-import math
 
 from urllib.parse import quote
 
@@ -17,6 +15,11 @@ class Fun():
 	def __init__(self, bot):
 		self.bot = bot
 
+	##Brake
+	##Brake copypasta
+	@commands.command()
+	async def rake(self, ctx):
+		await ctx.send("**WOAH W0AH WOAH, D1D *Y0U* JUST TRY AND :octagonal_sign::no_entry_sign:⛔ TH1S 🚆?!?!!\nD0N'T Y0U KN0W THAT THERE *ARE* NO BRAKES ON TH1S :bullettrain_side:??**")
 
 	@commands.command()
 	async def xkcd(self, ctx, num = None):
@@ -56,21 +59,56 @@ class Fun():
 			else:
 				await msg.edit(content="Error while getting comic.")
 
-	@commands.command(aliases = ["ucks","alance","🏦"])
+	@commands.command(aliases = ["bank", "ucks","alance","🏦"])
 	async def ank(self, ctx, user:discord.User = None):
 		'''b.ank [<user>]
 Checks how many b.ucks you or someone else has'''
 		if user:
-			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
+			if str(user.id) not in self.bot.money or self.bot.money[str(user.id)] == 0:
 				await ctx.send("`{}` has zero b.ucks :( Maybe they can b.orrow some from me?".format(secrets.clean(str(user))))
 			else:
 				await ctx.send("`{0}` has `{1}` b.ucks!".format(str(user), str(self.bot.money[ctx.message.author.id])))
 		else:
 			user = ctx.message.author
-			if user.id not in self.bot.money or self.bot.money[user.id] == 0:
+			if str(user.id) not in self.bot.money or self.bot.money[str(user.id)] == 0:
 				await ctx.send("You have zero b.ucks :( You can b.orrow some from me.")
 			else:
-				await ctx.send("You have `{}` b.ucks!".format(str(self.bot.money[ctx.message.author.id])))
+				await ctx.send("You have `{}` b.ucks!".format(self.bot.money[str(user.id)]))
+
+
+	@commands.command(aliases = "🏧")
+	@commands.cooldown(1, 60*60, commands.BucketType.user)
+	async def orrow(self, ctx):
+		'''b.orrow
+I'll lend you a few b.ucks ;)'''
+		amount = randint(1,100)+100
+		if str(ctx.message.author.id) not in self.bot.money:
+			self.bot.money[str(ctx.message.author.id)] = amount
+		else:
+			self.bot.money[str(ctx.message.author.id)] += amount
+		await ctx.send("Here, have `{}` b.ucks".format(amount))
+		with open('money.json','w') as fp:
+			json.dump(self.bot.money, fp)
+
+	@commands.command()
+	async def give(self, ctx, user:discord.User, amount:int):
+		'''give <user> <amount>
+- Gives a user some money'''
+
+		if str(ctx.message.author.id) in self.bot.money and self.bot.money[str(ctx.message.author.id)] >= amount:
+			self.bot.money[str(ctx.message.author.id)] -= amount
+			if user.id not in self.bot.money:
+				self.bot.money[str(user.id)] = 0
+
+			self.bot.money[str(user.id)] += amount
+
+			await ctx.send("You gave `{}` bucks to `{}`".format(amount, secrets.clean(user.display_name)))
+
+			with open('money.json','w') as fp:
+				json.dump(self.bot.money, fp)
+		else:
+			await ctx.send("You don't have enough money for that!")
+
 
 	#Slap
 	@commands.command()

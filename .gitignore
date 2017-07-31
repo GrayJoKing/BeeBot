@@ -46,14 +46,10 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-#my stuff
+#My stuff
 Secret_stuff.py
 secrets.py
-ang (copy).json
+bang.json
 money.json
-suggestions.txt
-TO-DO LIST.txt
-money.json
-discordBot/serverInfo.json
-*.pyc
-*.pyc
+serverInfo.json
+__pycache__

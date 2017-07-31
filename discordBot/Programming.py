@@ -4,20 +4,20 @@ import bounce
 from bf import *
 import secrets
 import json
+from math import ceil
 
 class Programming():
 	def __init__(self, bot):
 		self.bot = bot
 
 	@commands.command()
-	async def source(self):
+	async def source(self, ctx):
 		'''source
 - A link to the source code of this bot'''
-		await self.bot.say("This bot was programmed using discordpy. Nearly all the source code can be found at https://github.com/GuyJoKing/BeeBot")
-
+		await ctx.send("This bot was programmed using discordpy. Nearly all the source code can be found at https://github.com/GuyJoKing/BeeBot")
 
 	@commands.command()
-	async def changelog(self):
+	async def changelog(self, ctx):
 		'''changelog
 - The changelog of the bot'''
 
@@ -30,10 +30,10 @@ class Programming():
 		for change in changeLog['versions']:
 			embed.add_field(name="V"+change, value="\n".join(changeLog[change]))
 
-		await self.bot.say(embed=embed)
+		await ctx.send(embed=embed)
 
 	#bf
-	@commands.command(pass_context = True, aliases = ["brainfuck", "rainfuck", "bf"])
+	@commands.command(aliases = ["brainfuck", "rainfuck", "bf"])
 	async def f(self, ctx, *, inp):
 		'''b.f <code>!<input>
 - Runs a segment of brainfuck code
@@ -53,64 +53,65 @@ class Programming():
 
 		inp = inp.split("!")
 		if len(inp) == 0:
-			await self.bot.say("bf, more commonly known as brainfuck, is an esotoric programming language designed to be tough to use. Type b.help bf for more information.")
+			await ctx.send("bf, more commonly known as brainfuck, is an esotoric programming language designed to be tough to use. Type b.help bf for more information.")
 		elif len(list(filter(lambda x: x in ["+","-","<",">",".",",","[","]"], list(inp[0])))) == 0:
-			await self.bot.say("Error: No bf code. Type b.help bf for more information")
+			await ctx.send("Error: No bf code. Type b.help bf for more information")
 		else:
 			info = await BFinterpreter(list(filter(lambda x: x in ["+","-","<",">",".",",","[","]"], list(inp[0]))), list("".join(inp[1:])))
 			if info['instructions'] == info['instructionLimit']:
-				await self.bot.say("Sorry, your code went over the 3 million instruction limit. It's likely you had an infinite loop somewhere.")
+				await ctx.send("Sorry, your code went over the 3 million instruction limit. It's likely you had an infinite loop somewhere.")
 			else:
 				if len(info['out']) < 2000-6:
 					channel = ctx.message.channel
 					if len(info['out']) == 0:
-						await self.bot.say("No output")
+						await ctx.send("No output")
 					else:
-						await self.bot.say('```' + info['out'] + '```')
+						await ctx.send('```' + info['out'] + '```')
 				else:
-					channel = ctx.message.author
-					if not ctx.message.channel.is_private:
-						await self.bot.say("Your code went over Discord's 2000 character limit, so the output has been DM'd to you.")
+					channel = ctx.message.author.dm_channel
+					if not isinstance(ctx.message.channel, discord.DMChannel):
+						await ctx.send("Your code went over Discord's 2000 character limit, so the output has been DM'd to you.")
 					while info['out']:
 						if len(info['out']) > 1900:
-							await self.bot.send_message(ctx.message.author, "```" + secrets.clean(info['out'][:1900]) + "```")
+							await channel.send("```{}```".format(secrets.clean(info['out'][:1900])))
 							info['out'] = info['out'][1900:]
 						else:
-							await self.bot.send_message(ctx.message.author, "```" + info['out'] + "```")
+							await channel.send("```{}```".format(info['out']))
 							info['out'] = ""
-				post = "\nInstructions: `" + str(info['instructions']) + "`"
-				post += "\nLoops: `" + str(info['loops']) + "`"
-				post += "\nTime Taken: `" + str(math.ceil(info['time']*1000)) + "`ms"
+				post = "\nInstructions: `{}`".format(info['instructions'])
+				post += "\nLoops: `{}`".format(info['loops'])
+				post += "\nTime Taken: `{}`".format(ceil(info['time']*1000))
 				if info['negativeNum']:
 					post += "\nWrapping: `True`"
 				if info['negativeCell']:
-					post += "\nNegative Cells: True"
-				await self.bot.send_message(channel, post)
+					post += "\nNegative Cells: `True`"
+				await channel.send(post)
 
 
     #Bounce
 	@commands.command(aliases = ['bounce'])
 	async def ounce(self, *, code):
-                '''b.ounce <`code`> <input>
+		return
+		'''b.ounce <`code`> <input>
 - Codes with an esotoric programming language I invented!
 '''
-                test = code.split("```")
-                if len(test) == 1:
-                        test = code.split("`")
-                code = test[1]
-                if len(test) > 2:
-                        inp = test[2]
-                else:
-                        inp = ''
-                output, diction = bounce.runBounce(code, inp)
-                if output == "success":
-                        await self.bot.say('```Output:\n' + secrets.clean(str(diction["output"]))
-                                           + "\n\nInstructions executed: " + str(diction["executed"])
-                                           + "\nBounces: " + str(diction["bounces"]) + "```")
-                else:
-                        await self.bot.say("```Error: " + str(diction['reason'])
-                                           + "\nLine: " + str(diction['line'])
-                                           + "\nPointer: " + str(diction['pointer']) + "```")
+		test = code.split("```")
+		if len(test) == 1:
+			test = code.split("`")
+			code = test[1]
+		if len(test) > 2:
+			inp = test[2]
+		else:
+			inp = ''
+		output, diction = bounce.runBounce(code, inp)
+		if output == "success":
+			await ctx.send('```Output:\n' + secrets.clean(str(diction["output"]))
+							+ "\n\nInstructions executed: " + str(diction["executed"])
+							+ "\nBounces: " + str(diction["bounces"]) + "```")
+		else:
+			await ctx.send("```Error: " + str(diction['reason'])
+							+ "\nLine: " + str(diction['line'])
+							+ "\nPointer: " + str(diction['pointer']) + "```")
 
 def setup(bot):
 	bot.add_cog(Programming(bot))

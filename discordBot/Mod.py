@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import checks
 
 import secrets
 
@@ -11,7 +10,7 @@ class Mod():
 	##Mod
 	##Prune
 	##Prunes a number of messages
-	@commands.command(pass_context = True, aliases = ['purge'])
+	@commands.command(aliases = ['purge'])
 	@commands.has_permissions(manage_messages=True)
 	async def prune(self,ctx, num:int, user:discord.User = None):
 		'''prune <num> [<user>]

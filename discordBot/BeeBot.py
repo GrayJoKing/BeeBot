@@ -15,6 +15,11 @@ import asyncio
 #Secret stuff like bot tokens
 import secrets
 
+from os import path
+
+#Database
+import sqlite3
+
 #Uptime
 import time
 
@@ -35,17 +40,9 @@ import json
 #Install packages with "python -m pip install"
 #	install - pillow, colour
 
-#Rewrite regex
-
-#	self\.bot\.edit_message\((.+?)\,\s?new_content
-#	$1.edit(content
-
-#	self\.bot\.say
-#	ctx.send
-
 #RandomCog is used as in place of random to avoid conflicts
 #extensions = ["Basic","Randomcog","Mod","Fun","Games", "Programming", "Development", "Secret_stuff"]
-extensions = ["Basic", "Randomcog", "Mod", "Fun", "Games", "Secret_stuff"]
+extensions = ["Basic", "Randomcog", "Mod", "Fun", "Games", "Programming", "Development", "Secret_stuff"]
 
 #A debug mode for testing out new features or improving old ones
 
@@ -58,9 +55,36 @@ else:
 
 startTime = time.time()
 
+
+
 while True:
 	try:
 		bot = commands.Bot(game = discord.Game(name=beePrefixes[0] + "cmds"), command_prefix=beePrefixes, owner_id=secrets.owner)
+
+		bot.database = sqlite3.connect("database.db")
+
+		#Load game data
+		with open('gameData/bang.json','r') as fp:
+			bot.bangStats = json.load(fp)
+			fp.close()
+
+		with open('gameData/money.json','r') as fp:
+			bot.money = json.load(fp)
+			fp.close()
+
+		bot.wordLists = {}
+		wordTypes = ["short", "medium", "long"]
+		for wordType in wordTypes:
+			file_path = path.relpath("gameData/10000{0}.txt".format(wordType))
+			bot.wordLists[wordType] = []
+			wordList = open(file_path)
+			for line in wordList:
+				line = line.strip()
+				if len(line) > 0:
+					bot.wordLists[wordType].append(line)
+			wordList.close()
+
+
 		#Removes the default help command so you can put your own
 		bot.remove_command('help')
 
@@ -69,22 +93,22 @@ while True:
 		##Welcomes members to the server
 		@bot.event
 		async def on_member_join(member):
-			if bot.serverInfo['welcome']:
+			if 'welcome' in bot.serverInfo[str(member.guild.id)] and bot.serverInfo[str(member.guild.id)]['welcome']:
 				class SafeDict(dict):
 					def __missing__(self, key):
 						return '{' + key + '}'
-				await member.guild.default_channel.send(bot.serverInfo['welcome'].format_map(SafeDict(mention=member.mention, name=member.name, servername=member.server.name)))
+				await member.guild.default_channel.send(bot.serverInfo[str(member.guild.id)]['welcome'].format_map(SafeDict(mention=member.mention, name=member.name, servername=member.server.name)))
 			##assign role later
 
 		##On member leave
 		##Says goodbye to members
 		@bot.event
 		async def on_member_remove(member):
-			if bot.serverInfo['bye']:
+			if 'bye' in bot.serverInfo[str(member.guild.id)] and bot.serverInfo[str(member.guild.id)]['bye']:
 				class SafeDict(dict):
 					def __missing__(self, key):
 						return '{' + key + '}'
-				await member.guild.default_channel.send(bot.serverInfo['bye'].format_map(SafeDict(name=member.name, servername=member.server.name)))
+				await member.guild.default_channel.send(bot.serverInfo[str(member.guild.id)]['bye'].format_map(SafeDict(name=member.name, servername=member.server.name)))
 
 		##On bot startup
 		##Print stuff to cmd line and changes Playing to the command list command
@@ -93,15 +117,20 @@ while True:
 			print('Logged in as {}'.format(bot.user.name))
 			#Sets the startTimeof the bot (for b.uptime)
 			bot.startTime = startTime
+
+			with open('serverInfo.json','r') as fp:
+				bot.serverInfo = json.load(fp)
+				fp.close()
+
+			for server in bot.guilds:
+				if str(server.id) not in bot.serverInfo:
+					bot.serverInfo[str(server.id)] = {}
+
 			try:
 				await bot.user.edit(avatar=open("profilePics\\" + random.choice(os.listdir("profilePics\\")), 'rb').read())
 				print("Set random profile pic")
 			except Exception as e:
 				print("FAILED: Profile Pic\n" + str(e))
-
-			with open('serverInfo.json','r') as fp:
-				bot.serverInfo = json.load(fp)
-				fp.close()
 
 		##checks messages
 		@bot.event
@@ -140,13 +169,13 @@ while True:
 				minutes = math.floor(tim/60)%60
 				#Gets the amount of seconds, rounding up
 				seconds = math.ceil(tim%60)
-				if not days:
+				if days != 0:
 					allTime.append("`" + str(days) + "` days")
-				if not hours:
+				if hours != 0:
 					allTime.append("`" + str(hours) + "` hours")
-				if not minutes:
+				if minutes != 0:
 					allTime.append("`" + str(minutes) + "` minutes")
-				if not seconds:
+				if seconds != 0:
 					allTime.append("`" + str(seconds) + "` seconds")
 				await ctx.send('That command is on cooldown. Try again in {}'.format(", ".join(allTime)))
 			elif type(exception) != commands.CommandNotFound:
@@ -158,8 +187,8 @@ while True:
 		async def on_member_join(member):
 			if not debug:
 				await bot.send_message(bot.get_channel(secrets.newsChannelID), ":bee: was added to the server `{0}`, with `{1}` members. Yay!".format(member.server.name, member.server.member_count-1))
-			if member.server.id not in bot.serverInfo:
-				bot.serverInfo[member.server.id] = {}
+			if str(member.server.id) not in bot.serverInfo:
+				bot.serverInfo[str(member.server.id)] = {}
 
 		@bot.event
 		async def on_member_remove(member):

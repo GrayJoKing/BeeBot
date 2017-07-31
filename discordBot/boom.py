@@ -83,17 +83,3 @@ class minefield:
                         return "revealed"
                 self.minefield[cood[0]][cood[1]].flagged = not self.minefield[cood[0]][cood[1]].flagged
                 return "flagged"
-
-
-
-##size = 8
-##mineNum = 10
-##field = minefield(size, mineNum)
-##
-##while field.checkGame() == "playing":
-##        print("\n".join(list(map(lambda row: "".join(row), field.simpleField()))))
-##
-##        field.clickSpace(list(map(lambda x: int(x), input("Co-od: ").split(","))))
-##
-##print("\n".join(list(map(lambda row: "".join(row), field.simpleField()))))
-##print(field.checkGame())

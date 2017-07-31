@@ -302,67 +302,10 @@ And you, the user, for inviting me to your guild and using me!```''')
 		#Deletes the "Getting video" message
 		await msg.delete()
 
-	#info
-	@commands.command()
-	async def info(self, ctx, *, item = '' ):
-		'''info [<user>|<emoji>|"me"|"guild"|<channel>]
-- Shows info about a multitude of things
-Commands:
-- No Command
-	- Displays info about BeeBot
-- <user>
-	- Displays info about the user
-	- The search function on this is a bit wonky
-- Emoji or <emoji>
-	- Displays info about the guild's custom emojis or a specific one
-	- Shortcut: b.emoji [<emoji>]
-- Me
-	- Displays info about you
-	- Shortcut: b.me
-- guild
-	- Displays info about this server
-	- Shortcut: b.server
-- Channel or <channel>
-	- Displays info about the channel you are currently on or one specified
-	- Shortcut: b.channel [<channel>]'''
-
-		itemType = re.match(r'<(@!?|#|:[a-zA-Z0-9]+:)([0-9]+)>$', item)
-
-		if itemType:
-			itemID = itemType.group(2)
-			itemType = itemType.group(1)
-			print(itemType, itemID)
-			if itemType == "@" or itemType == "@!":
-				await self.userInfo(ctx.message.guild.get_member(itemID))
-			elif itemType == "#":
-				await self.channelInfo(itemID)
-			else:
-				await self.emojiInfo(ctx.message.guild, itemID)
-		elif item.lower() == "channel":
-			ctx.invoke(command="channel")
-		elif item.lower() == "server":
-			ctx.invoke(command="server")
-		elif item.lower() == "me":
-			ctx.invoke(command="me")
-		elif item.lower() == "emoji":
-			ctx.invoke(command="emoji")
-		elif item == "":
-			ctx.invoke(command="invite")
-		else:
-			user = ctx.message.guild.get_member_named(item)
-			if not user:
-				user, prob = searchUsers(ctx.message.guild, item)
-				await self.userInfo(ctx, user, prob, item)
-				return
-			ctx.invoke(command="user", user=user)
-
-	#Aliases for the info commands
-	@commands.command()
-	async def me(self, ctx):
-		ctx.invoke(command="userInfo")
-
-	@commands.command()
-	async def server(self, ctx):
+	@commands.command(aliases = ['server'])
+	async def serverinfo(self, ctx):
+		'''serverInfo
+- Displays info about this server'''
 		guild = ctx.message.guild
 		embed = discord.Embed(title = guild.name, colour = discord.Colour.gold())
 		#Sets the thumbnail to that of the guild's
@@ -399,8 +342,11 @@ Commands:
 
 		await ctx.send(embed=embed)
 
-	@commands.command()
-	async def channel(self, ctx, channel:discord.TextChannel = None):
+	@commands.command(aliases = ["channel"])
+	async def channelinfo(self, ctx, channel:discord.TextChannel = None):
+		'''channelInfo [<channel>]
+- Displays info about a channel'''
+
 		if not channel:
 			channel = ctx.message.channel
 
@@ -415,17 +361,13 @@ Commands:
 
 		await ctx.send(embed=embed)
 
-	@commands.command()
-	async def emoji(self, ctx):
+	@commands.command(aliases = ["emoji"])
+	async def emojiinfo(self, ctx, emoji:discord.Emoji = None):
+		'''emojiInfo [<custom emoji>]
+- Displays info about a custom emoji or about all the server's emoji'''
 		guild = ctx.message.guild
 
-		if id and False:
-			emoji = list(filter(lambda emoji: emoji.id == id, guild.emojis))
-			if len(emoji) == 0:
-				await ctx.send("Error: Unknown Emoji")
-				return
-			else:
-				emoji = emoji[0]
+		if emoji:
 			#Creates an embed with the title as the emoji name, linked to a picture of the emoji
 			embed = discord.Embed(title = emoji.name, url = emoji.url)
 			#Sets the thumbnail and image to the emoji
@@ -443,9 +385,12 @@ Commands:
 
 		await ctx.send(embed=embed)
 
-	@commands.command()
+	@commands.command(aliases = ["me", "user"])
 	async def userinfo(self, ctx, user:discord.Member=None):
-		if not user:
+		'''userInfo [<user>]
+- Displays info about you or another user'''
+
+		if not user or ctx.invoked_with == "me":
 			user = ctx.message.author
 
 		#Creates the embed, where the title is the user's name+discriminator and the colour is the user's actual displayed role colour
@@ -490,7 +435,7 @@ Commands:
 		await ctx.send(embed=embed)
 
 	@commands.command()
-	async def calc(self, ctx, *message):
+	async def calc(self, ctx, *, message):
 		'''calc <expression>
 - Returns the result from a calculation
 - Special characters are:
@@ -506,7 +451,7 @@ WARNING:
 There are still some issues with this. Imaginary numbers render weirdly.'''
 
 		#Removes spaces
-		msg = "".join(message)
+		msg = message.replace(" ", "")
 
 		#Some humorous expressions
 		if msg == "1+1":
@@ -596,6 +541,15 @@ Shows stats about the bot'''
 
 		await ctx.send(embed=embed)
 
+	#Suggest
+	#Suggests a feature for BeeBot
+	@commands.command()
+	async def suggest(self, ctx, *, suggestion):
+		'''suggest <suggestion>
+- Suggests a feature for BeeBot
+- Misuse of this feature will get you blacklisted'''
+		await self.bot.get_channel(secrets.suggestChannelID).send(secrets.clean("```SUGGESTION: {0}\nUSER: {1}\nSERVER: {2}```".format(suggestion, ctx.message.author.name, ctx.message.guild.name)))
+		await ctx.send('Thanks for the suggestion!')
 
 def setup(bot):
 	bot.add_cog(Basic(bot))
